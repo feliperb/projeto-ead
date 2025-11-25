@@ -1,17 +1,77 @@
+### MAVEN ###
 target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
+!.mvn/wrapper/maven-wrapper.jar
 .mvn/timing.properties
-# https://maven.apache.org/wrapper/#usage-without-binary-jar
-.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Eclipse m2e generated files
-# Eclipse Core
+### GRADLE ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+### LOGS ###
+logs/
+*.log
+*.out
+*.err
+spring.log
+
+### JAVA ###
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+hs_err_pid*
+replay_pid*
+
+### IDEs ###
+# IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
 .project
-# JDT-specific (Eclipse Java Development Tools)
 .classpath
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+### DOCKER ###
+# Volumes de dados do PostgreSQL
+pgdata/
+
+### SPRING / CONFIG ###
+# Arquivos temporários ou secrets (produção)
+*.env
+*.local
+*.secret
+
+### SYSTEM FILES ###
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux / editor swap
+*.swp
+*.swo
+*.tmp
+*.cache
+
+### OTHERS ###
+.checkstyle
+.factorypath
+node_modules/
