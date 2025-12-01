@@ -23,6 +23,7 @@ public class UserServiceImpl implements UserService {
 
     final UserRepository userRepository;
     private final UserMapper userMapper;
+    //private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<UserModel> findAll() {
@@ -43,14 +44,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserModel registerUser(UserRecordDto dto) {
-        if (userRepository.existsByUsername(dto.username())) {
-            throw new ConflictException("Username is already taken");
-        }
+        if (userRepository.existsByUsername(dto.username())) throw new ConflictException("Username is already taken");
+        if (userRepository.existsByEmail(dto.email())) throw new ConflictException("Email is already taken");
+
         UserModel user = userMapper.toEntity(dto);
+
         user.setUserStatus(UserStatus.ACTIVE);
         user.setUserType(UserType.USER);
-        user.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
-        user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+        user.setCreationDate(now);
+        user.setLastUpdateDate(now);
+
+        //user.setPassword(passwordEncoder.encode(dto.password()));
+        user.setPassword(dto.password());
+
         return userRepository.save(user);
     }
 
