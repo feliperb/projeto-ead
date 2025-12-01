@@ -6,7 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -15,14 +16,31 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorRecordResponse> handleNotFoundException(
             NotFoundException ex,
             HttpServletRequest request
-    ){
-        ErrorRecordResponse errorResponse = ErrorRecordResponse.builder()
-                .status(HttpStatus.NOT_FOUND.value())
-                .message(ex.getMessage())
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorRecordResponse> handleConflictException(
+            ConflictException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+
+    private ResponseEntity<ErrorRecordResponse> buildResponse(
+            HttpStatus status,
+            String message,
+            HttpServletRequest request
+    ) {
+        ErrorRecordResponse error = ErrorRecordResponse.builder()
+                .status(status.value())
+                .message(message)
+                .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
                 .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return ResponseEntity.status(status).body(error);
     }
 }
