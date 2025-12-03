@@ -1,7 +1,9 @@
 package com.ead.authuser.controllers;
 
+import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.services.UserService;
+import com.fasterxml.jackson.annotation.JsonView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,5 +34,13 @@ public class UserController {
         return ResponseEntity.noContent().build(); // HTTP 204
     }
 
-
+    @PutMapping("/{userId}")
+    public ResponseEntity<UserModel> updateUser(@PathVariable UUID userId,
+                                                @RequestBody @JsonView(UserRecordDto.UserView.UserPut.class) UserRecordDto dto) {
+        UserModel user = userService.findById(userId);
+        return ResponseEntity.ok(userService.updateUser(dto, user));
+    }
 }
+
+
+

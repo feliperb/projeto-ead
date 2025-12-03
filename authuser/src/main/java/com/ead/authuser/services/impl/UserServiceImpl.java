@@ -62,4 +62,12 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
+    @Override
+    public UserModel updateUser(UserRecordDto dto, UserModel user) {
+        if (dto.fullName() != null) user.setFullName(dto.fullName());
+        if (dto.phoneNumber() != null) user.setPhoneNumber(dto.phoneNumber());
+        user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        return userRepository.save(user);
+    }
+
 }
