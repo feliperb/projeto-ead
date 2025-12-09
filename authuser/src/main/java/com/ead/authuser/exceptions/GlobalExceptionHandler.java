@@ -28,6 +28,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorRecordResponse> handleUnauthorizedException(UnauthorizedException ex) {
+        ErrorRecordResponse errorResponse = ErrorRecordResponse.builder()
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
 
     private ResponseEntity<ErrorRecordResponse> buildResponse(
             HttpStatus status,

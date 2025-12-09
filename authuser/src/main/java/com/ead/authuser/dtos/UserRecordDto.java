@@ -9,11 +9,14 @@ public record UserRecordDto(
         @JsonView(UserView.RegistrationPost.class)
         String email,
 
-        @JsonView({UserView.RegistrationPost.class, UserView.PasswordPut.class})
+        @JsonView({UserView.RegistrationPost.class})
         String password,
 
         @JsonView(UserView.PasswordPut.class)
         String oldPassword,
+
+        @JsonView(UserView.PasswordPut.class)
+        String newPassword,
 
         @JsonView({UserView.RegistrationPost.class, UserView.UserPut.class})
         String fullName,

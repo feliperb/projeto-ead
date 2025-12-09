@@ -16,7 +16,7 @@ import java.util.UUID;
 @RequestMapping("/users")
 public class UserController {
 
-    final UserService userService;
+    private final UserService userService;
 
     @GetMapping
     public ResponseEntity<List<UserModel>> getAllUsers() {
@@ -35,12 +35,15 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<UserModel> updateUser(@PathVariable UUID userId,
-                                                @RequestBody @JsonView(UserRecordDto.UserView.UserPut.class) UserRecordDto dto) {
+    public ResponseEntity<UserModel> updateUser(@PathVariable UUID userId, @RequestBody @JsonView(UserRecordDto.UserView.UserPut.class) UserRecordDto dto) {
         UserModel user = userService.findById(userId);
         return ResponseEntity.ok(userService.updateUser(dto, user));
     }
+
+    @PutMapping("/{userId}/password")
+    public ResponseEntity<String> updatePassword(@PathVariable UUID userId, @RequestBody @JsonView(UserRecordDto.UserView.PasswordPut.class) UserRecordDto dto) {
+        UserModel user = userService.findById(userId);
+        userService.updatePassword(dto, user);
+        return ResponseEntity.ok("Password updated successfully.");
+    }
 }
-
-
-

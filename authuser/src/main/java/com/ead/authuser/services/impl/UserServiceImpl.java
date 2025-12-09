@@ -5,10 +5,12 @@ import com.ead.authuser.enums.UserStatus;
 import com.ead.authuser.enums.UserType;
 import com.ead.authuser.exceptions.ConflictException;
 import com.ead.authuser.exceptions.NotFoundException;
+import com.ead.authuser.exceptions.UnauthorizedException;
 import com.ead.authuser.mapper.UserMapper;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.repositories.UserRepository;
 import com.ead.authuser.services.UserService;
+import com.ead.authuser.validators.PasswordValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +23,7 @@ import java.util.UUID;
 @Service
 public class UserServiceImpl implements UserService {
 
-    final UserRepository userRepository;
+    private final UserRepository userRepository;
     private final UserMapper userMapper;
     //private final PasswordEncoder passwordEncoder;
 
@@ -68,6 +70,33 @@ public class UserServiceImpl implements UserService {
         if (dto.phoneNumber() != null) user.setPhoneNumber(dto.phoneNumber());
         user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         return userRepository.save(user);
+    }
+
+//    @Override
+//    public UserModel updatePassword(UserRecordDto dto, UserModel user) {
+//        if (!passwordEncoder.matches(dto.oldPassword(), user.getPassword())) {
+//            throw new UnauthorizedException("Old password does not match");
+//        }
+//        if (passwordEncoder.matches(dto.newPassword(), user.getPassword())) {
+//            throw new ConflictException("New password must be different from the old password.");
+//        }
+//        user.setPassword(passwordEncoder.encode(dto.newPassword()));
+//        user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+//        return userRepository.save(user);
+//    }
+
+    @Override
+    public void updatePassword(UserRecordDto dto, UserModel user) {
+        PasswordValidator.validateNotBlank(dto.oldPassword(), dto.newPassword());
+        PasswordValidator.validateDifferent(dto.oldPassword(), dto.newPassword());
+        PasswordValidator.validateStrength(dto.newPassword());
+
+        if (!dto.oldPassword().equals(user.getPassword())) throw new UnauthorizedException("Old password does not match.");
+
+        user.setPassword(dto.newPassword());
+        user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+
+        userRepository.save(user);
     }
 
 }
