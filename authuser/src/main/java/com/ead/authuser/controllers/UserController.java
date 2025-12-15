@@ -4,6 +4,7 @@ import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.services.UserService;
 import com.fasterxml.jackson.annotation.JsonView;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,15 +36,26 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<UserModel> updateUser(@PathVariable UUID userId, @RequestBody @JsonView(UserRecordDto.UserView.UserPut.class) UserRecordDto dto) {
+    public ResponseEntity<UserModel> updateUser(@PathVariable UUID userId, @RequestBody @JsonView(UserRecordDto.UserView.UserPut.class) @Valid UserRecordDto dto) {
         UserModel user = userService.findById(userId);
         return ResponseEntity.ok(userService.updateUser(dto, user));
     }
 
     @PutMapping("/{userId}/password")
-    public ResponseEntity<String> updatePassword(@PathVariable UUID userId, @RequestBody @JsonView(UserRecordDto.UserView.PasswordPut.class) UserRecordDto dto) {
+    public ResponseEntity<Void> updatePassword(@PathVariable UUID userId, @RequestBody @JsonView(UserRecordDto.UserView.PasswordPut.class) @Valid UserRecordDto dto) {
         UserModel user = userService.findById(userId);
         userService.updatePassword(dto, user);
-        return ResponseEntity.ok("Password updated successfully.");
+        return ResponseEntity.noContent().build(); //204
     }
+
+
+    @PutMapping("/{userId}/image")
+    public ResponseEntity<Void> updateImage(
+            @PathVariable UUID userId,
+            @RequestBody @Valid UserRecordDto dto
+    ) {
+        userService.updateImage(userId, dto.imageUrl());
+        return ResponseEntity.noContent().build();
+    }
+
 }

@@ -5,12 +5,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorRecordResponse> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Invalid UUID format",
+                request
+        );
+    }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorRecordResponse> handleNotFoundException(
@@ -29,14 +42,35 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ErrorRecordResponse> handleUnauthorizedException(UnauthorizedException ex) {
-        ErrorRecordResponse errorResponse = ErrorRecordResponse.builder()
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .message(ex.getMessage())
-                .build();
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    public ResponseEntity<ErrorRecordResponse> handleUnauthorizedException(
+            UnauthorizedException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorRecordResponse> handleBusinessException(
+            BusinessException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    // ⬇️ SEMPRE O ÚLTIMO
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorRecordResponse> handleGenericException(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal server error",
+                request
+        );
+    }
+
+
 
 
     private ResponseEntity<ErrorRecordResponse> buildResponse(

@@ -3,6 +3,7 @@ package com.ead.authuser.services.impl;
 import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.enums.UserStatus;
 import com.ead.authuser.enums.UserType;
+import com.ead.authuser.exceptions.BusinessException;
 import com.ead.authuser.exceptions.ConflictException;
 import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.exceptions.UnauthorizedException;
@@ -13,6 +14,7 @@ import com.ead.authuser.services.UserService;
 import com.ead.authuser.validators.PasswordValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -98,5 +100,23 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
     }
+
+
+
+    @Override
+    @Transactional
+    public void updateImage(UUID userId, String imageUrl) {
+
+        UserModel user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        if (imageUrl.equals(user.getImageUrl())) {
+            throw new BusinessException("Image is already the same");
+        }
+
+        user.setImageUrl(imageUrl);
+        user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+    }
+
 
 }
