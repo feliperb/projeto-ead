@@ -3,6 +3,7 @@ package com.ead.authuser.services.impl;
 import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.enums.UserStatus;
 import com.ead.authuser.enums.UserType;
+import com.ead.authuser.exceptions.BusinessException;
 import com.ead.authuser.exceptions.ConflictException;
 import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.exceptions.UnauthorizedException;
@@ -206,6 +207,19 @@ class UserServiceImplTest {
 
         assertThatThrownBy(() -> service.updateImage(id, "image.jpg"))
             .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("updateImage should throw BusinessException when image is same as current")
+    void updateImage_SameImage() {
+        var id = UUID.randomUUID();
+        var user = createUser(id);
+        user.setImageUrl("same.jpg");
+        when(repository.findById(id)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> service.updateImage(id, "same.jpg"))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("Image is already the same");
     }
 }
 
