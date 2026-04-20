@@ -3,6 +3,7 @@ package com.ead.authuser.exceptions;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -14,6 +15,7 @@ import java.time.ZoneOffset;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @SuppressWarnings("unused")
     public ResponseEntity<ErrorRecordResponse> handleMethodArgumentTypeMismatch(
             MethodArgumentTypeMismatchException ex,
             HttpServletRequest request
@@ -31,6 +33,21 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorRecordResponse> handleValidationException(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .findFirst()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .orElse("Validation failed");
+
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
     @ExceptionHandler(ConflictException.class)
@@ -59,6 +76,7 @@ public class GlobalExceptionHandler {
 
     // ⬇️ SEMPRE O ÚLTIMO
     @ExceptionHandler(Exception.class)
+    @SuppressWarnings("unused")
     public ResponseEntity<ErrorRecordResponse> handleGenericException(
             Exception ex,
             HttpServletRequest request
