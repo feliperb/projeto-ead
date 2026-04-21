@@ -13,6 +13,8 @@ import com.ead.authuser.repositories.UserRepository;
 import com.ead.authuser.services.UserService;
 import com.ead.authuser.validators.PasswordValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -118,5 +120,9 @@ public class UserServiceImpl implements UserService {
         user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
     }
 
+    @Override
+    public Page<UserModel> findAll(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
 
 }
