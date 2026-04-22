@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/users")
@@ -24,7 +27,13 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<Page<UserModel>> getAllUsers(SpecificationTemplate.UserSpec spec, Pageable pageable) {
-        return ResponseEntity.ok(userService.findAll(spec, pageable));
+        Page<UserModel> page = userService.findAll(spec, pageable);
+        page.forEach(user ->
+                user.add(linkTo(methodOn(UserController.class)
+                        .getUserById(user.getUserId()))
+                        .withSelfRel())
+        );
+        return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{userId}")

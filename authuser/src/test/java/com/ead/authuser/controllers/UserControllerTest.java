@@ -7,13 +7,13 @@ import com.ead.authuser.exceptions.BusinessException;
 import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.services.UserService;
+import com.ead.authuser.specification.SpecificationTemplate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -53,19 +53,26 @@ class UserControllerTest {
     @DisplayName("getAllUsers should return page of users with status 200")
     void getAllUsers_ReturnsOk() {
         var pageable = PageRequest.of(0, 10);
+        var spec = mock(SpecificationTemplate.UserSpec.class);
 
-        var users = List.of(createUser(UUID.randomUUID()), createUser(UUID.randomUUID()));
+        var users = List.of(
+                createUser(UUID.randomUUID()),
+                createUser(UUID.randomUUID())
+        );
         var page = new PageImpl<>(users, pageable, users.size());
-
         when(userService.findAll(any(), eq(pageable))).thenReturn(page);
 
-        var response = controller.getAllUsers(null, pageable); // ✅ aqui
-
+        var response = controller.getAllUsers(spec, pageable);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getContent()).hasSize(2);
-        assertThat(response.getBody().getTotalElements()).isEqualTo(2);
 
+        var body = response.getBody();
+        assertThat(body.getContent()).hasSize(2);
+        assertThat(body.getTotalElements()).isEqualTo(2);
+
+        body.forEach(user ->
+                assertThat(user.getLinks()).isNotEmpty()
+        );
         verify(userService).findAll(any(), eq(pageable));
     }
 
@@ -73,16 +80,16 @@ class UserControllerTest {
     @DisplayName("getAllUsers should return empty page when no users")
     void getAllUsers_EmptyPage() {
         var pageable = PageRequest.of(0, 10);
+        var spec = mock(SpecificationTemplate.UserSpec.class);
+
         var page = new PageImpl<UserModel>(List.of(), pageable, 0);
-
         when(userService.findAll(any(), eq(pageable))).thenReturn(page);
-
-        var response = controller.getAllUsers(null, pageable);
+        var response = controller.getAllUsers(spec, pageable);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        Page<UserModel> body = response.getBody();
+        var body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.getContent()).isEmpty();
         assertThat(body.getTotalElements()).isZero();
