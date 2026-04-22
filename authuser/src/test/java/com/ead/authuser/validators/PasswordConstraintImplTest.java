@@ -122,7 +122,7 @@ class PasswordConstraintImplTest {
     @Test
     @DisplayName("isValid should return false for password longer than 20 characters")
     void isValid_TooLong_ReturnsFalse() {
-        String password = "MyP@ssword123456789X";  // 21 chars, max is 20
+        String password = "MyP@ssword123456789XY";  // 21 chars, max is 20
 
         boolean result = validator.isValid(password, context);
 
@@ -203,8 +203,8 @@ class PasswordConstraintImplTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "Test!@#$%^&*()-;:',?/<>+1aB",  // Many special chars
-            "A1b!",                          // Minimum requirement
+            "Test!@#$%^&*()-1aB",   // <= 20 chars,  // Many special chars
+            "A1b!09",                          // Minimum requirement
             "Pass@123Word",                  // Standard format
             "M0d3rn!P@ss",                   // Multiple special chars
             "Sec@re1ty"                      // Simple valid

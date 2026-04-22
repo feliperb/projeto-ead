@@ -1,5 +1,6 @@
 package com.ead.authuser.config;
 
+import net.kaczmarzyk.spring.data.jpa.web.SpecificationArgumentResolver;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
@@ -14,6 +15,11 @@ public class ResolverConfig implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+
+        // Interceptar solicitacoes, obter os parametros e passar para o SpringData conseguir realizar as consultas
+        // E converter para objetos JAVA (‘Strings’, Enums, LocalDate, BigDecimal, Double etc)
+        resolvers.add(new SpecificationArgumentResolver());
+
         PageableHandlerMethodArgumentResolver resolver = new PageableHandlerMethodArgumentResolver();
         resolver.setFallbackPageable(PageRequest.of(0, 10)); // Define a página padrão como 0 e o tamanho como 10
         resolvers.add(resolver);

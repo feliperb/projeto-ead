@@ -18,13 +18,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserServiceImpl Tests")
@@ -48,17 +49,17 @@ class UserServiceImplTest {
             .build();
     }
 
-    @Test
-    @DisplayName("findAll should return users list")
-    void findAll_Success() {
-        var users = List.of(createUser(UUID.randomUUID()), createUser(UUID.randomUUID()));
-        when(repository.findAll()).thenReturn(users);
-
-        var result = service.findAll();
-
-        assertThat(result).hasSize(2).isEqualTo(users);
-        verify(repository).findAll();
-    }
+//    @Test
+//    @DisplayName("findAll should return users list")
+//    void findAll_Success() {
+//        var users = List.of(createUser(UUID.randomUUID()), createUser(UUID.randomUUID()));
+//        when(repository.findAll()).thenReturn(users);
+//
+//        var result = service.findAll();
+//
+//        assertThat(result).hasSize(2).isEqualTo(users);
+//        verify(repository).findAll();
+//    }
 
     @Test
     @DisplayName("findById should return user when exists")

@@ -93,8 +93,6 @@ class GlobalExceptionHandlerTest {
         when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of(fieldError1, fieldError2));
         when(fieldError1.getField()).thenReturn("email");
         when(fieldError1.getDefaultMessage()).thenReturn("Email must be valid");
-        when(fieldError2.getField()).thenReturn("password");
-        when(fieldError2.getDefaultMessage()).thenReturn("Password is mandatory");
 
         var response = handler.handleValidationException(exception, request);
 

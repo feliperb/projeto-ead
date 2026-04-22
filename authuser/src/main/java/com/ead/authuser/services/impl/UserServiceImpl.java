@@ -15,12 +15,12 @@ import com.ead.authuser.validators.PasswordValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -32,8 +32,8 @@ public class UserServiceImpl implements UserService {
     //private final PasswordEncoder passwordEncoder;
 
     @Override
-    public List<UserModel> findAll() {
-        return userRepository.findAll();
+    public Page<UserModel> findAll(Specification<UserModel> spec, Pageable pageable) {
+        return userRepository.findAll(spec, pageable);
     }
 
     @Override
@@ -118,11 +118,6 @@ public class UserServiceImpl implements UserService {
 
         user.setImageUrl(imageUrl);
         user.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
-    }
-
-    @Override
-    public Page<UserModel> findAll(Pageable pageable) {
-        return userRepository.findAll(pageable);
     }
 
 }
