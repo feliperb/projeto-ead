@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -56,6 +58,7 @@ public class CourseModel implements Serializable { // Cada Course pode ter vári
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // tirar READ para evitar loops
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY) // EAGER = ansioso, LAZY = preguicoso (so carrega dados quando necessario)
+    @Fetch(FetchMode.SUBSELECT) // Evitar o problema do N+1 (carregar os modules em um unico select, ao inves de um select para cada module)
     private Set<ModuleModel> modules;
 
 }
