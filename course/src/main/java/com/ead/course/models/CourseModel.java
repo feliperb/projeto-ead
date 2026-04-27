@@ -4,19 +4,21 @@ import com.ead.course.enums.CourseLevel;
 import com.ead.course.enums.CourseStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 @Entity
 @Table(name = "TB_COURSES")
-public class CourseModel implements Serializable {
+public class CourseModel implements Serializable { // Cada Course pode ter vários ModuleModel
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -51,5 +53,9 @@ public class CourseModel implements Serializable {
 
     @Column
     private String imageUrl;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // tirar READ para evitar loops
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY) // EAGER = ansioso, LAZY = preguicoso (so carrega dados quando necessario)
+    private Set<ModuleModel> modules;
 
 }
