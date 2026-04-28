@@ -56,8 +56,9 @@ public class CourseModel implements Serializable { // Cada Course pode ter vári
     @Column
     private String imageUrl;
 
+    //@OnDelete(action = OnDeleteAction.CASCADE) // Para deletar os modules quando o course for deletado
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // tirar READ para evitar loops
-    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY) // EAGER = ansioso, LAZY = preguicoso (so carrega dados quando necessario)
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true) // EAGER = ansioso, LAZY = preguicoso (so carrega dados quando necessario)
     @Fetch(FetchMode.SUBSELECT) // Evitar o problema do N+1 (carregar os modules em um unico select, ao inves de um select para cada module)
     private Set<ModuleModel> modules;
 
