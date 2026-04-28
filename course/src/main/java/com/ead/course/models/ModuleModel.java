@@ -39,7 +39,12 @@ public class ModuleModel implements Serializable {  //Cada ModuleModel pode ter 
     private CourseModel course;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // tirar READ para evitar loops
-    @OneToMany(mappedBy = "module", fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "module",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     private Set<LessonModel> lessons;
 
 }
