@@ -81,7 +81,8 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseModel> findAll() {
-        return courseRepository.findAll();
+        return Optional.of(courseRepository.findAll())
+                .orElse(List.of());
     }
 
     @Override

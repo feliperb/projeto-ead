@@ -7,6 +7,8 @@ import com.ead.course.services.ModuleService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class ModuleServiceImpl implements ModuleService {
 
@@ -28,4 +30,13 @@ public class ModuleServiceImpl implements ModuleService {
         }
         moduleRepository.delete(moduleModel);
     }
+
+    @Transactional
+    @Override
+    public void deleteById(UUID moduleId) {
+        var moduleModel = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
+        delete(moduleModel);
+    }
 }
+

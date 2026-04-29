@@ -33,7 +33,8 @@ public class CourseController {
 
     @GetMapping
     public ResponseEntity<List<CourseModel>> getAllCourses() {
-        return ResponseEntity.ok(courseService.findAll());
+        List<CourseModel> courses = courseService.findAll();
+        return ResponseEntity.ok(courses != null ? courses : List.of());
     }
 
     @GetMapping("/{courseId}")
