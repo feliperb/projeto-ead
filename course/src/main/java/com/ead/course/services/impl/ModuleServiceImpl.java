@@ -1,12 +1,17 @@
 package com.ead.course.services.impl;
 
+import com.ead.course.dtos.ModuleRecordeDto;
+import com.ead.course.models.CourseModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.LessonRepository;
 import com.ead.course.repositories.ModuleRepository;
 import com.ead.course.services.ModuleService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Service
@@ -37,6 +42,15 @@ public class ModuleServiceImpl implements ModuleService {
         var moduleModel = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
         delete(moduleModel);
+    }
+
+    @Override
+    public ModuleModel save(ModuleRecordeDto moduleRecordDto, CourseModel courseModel) {
+        var moduleModel = new ModuleModel();
+        BeanUtils.copyProperties(moduleRecordDto, moduleModel);
+        moduleModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
+        moduleModel.setCourse(courseModel);
+        return moduleRepository.save(moduleModel);
     }
 }
 
