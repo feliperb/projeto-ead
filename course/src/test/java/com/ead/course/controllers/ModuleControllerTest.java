@@ -1,6 +1,6 @@
 package com.ead.course.controllers;
 
-import com.ead.course.dtos.ModuleRecordeDto;
+import com.ead.course.dtos.ModuleRecordDto;
 import com.ead.course.models.CourseModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.services.CourseService;
@@ -38,7 +38,7 @@ class ModuleControllerTest {
     private UUID moduleId;
     private CourseModel courseModel;
     private ModuleModel moduleModel;
-    private ModuleRecordeDto moduleRecordeDto;
+    private ModuleRecordDto moduleRecordeDto;
     private AutoCloseable closeable;
 
     @BeforeEach
@@ -58,7 +58,7 @@ class ModuleControllerTest {
         moduleModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
         moduleModel.setCourse(courseModel);
 
-        moduleRecordeDto = new ModuleRecordeDto("Test Module", "Test Description");
+        moduleRecordeDto = new ModuleRecordDto("Test Module", "Test Description");
     }
 
     @AfterEach

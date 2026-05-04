@@ -45,22 +45,6 @@ class LessonServiceImplTest {
         }
     }
 
-    // Tests for delete
-    @Test
-    void delete_nullLessonModel_throwsException() {
-        assertThrows(IllegalArgumentException.class, () -> lessonService.delete(null));
-        verify(lessonRepository, never()).delete(any());
-    }
-
-    @Test
-    void delete_validLesson_deletesLesson() {
-        doNothing().when(lessonRepository).delete(lessonModel);
-
-        lessonService.delete(lessonModel);
-
-        verify(lessonRepository, times(1)).delete(lessonModel);
-    }
-
     // Tests for deleteById
     @Test
     void deleteById_success_deletesLesson() {

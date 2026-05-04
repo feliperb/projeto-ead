@@ -1,6 +1,6 @@
 package com.ead.course.services.impl;
 
-import com.ead.course.dtos.ModuleRecordeDto;
+import com.ead.course.dtos.ModuleRecordDto;
 import com.ead.course.models.CourseModel;
 import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
@@ -101,7 +101,7 @@ class ModuleServiceImplTest {
         courseModel.setCourseId(courseId);
         courseModel.setName("Test Course");
 
-        ModuleRecordeDto moduleRecordeDto = new ModuleRecordeDto("Test Module", "Test Description");
+        ModuleRecordDto moduleRecordeDto = new ModuleRecordDto("Test Module", "Test Description");
 
         when(moduleRepository.save(any(ModuleModel.class))).thenAnswer(invocation -> {
             ModuleModel savedModule = invocation.getArgument(0);
@@ -153,27 +153,27 @@ class ModuleServiceImplTest {
     // Tests for getById
     @Test
     void getById_moduleExists_returnsModule() {
-        when(moduleRepository.findByCourseIdAndModuleId(moduleId)).thenReturn(Optional.of(moduleModel));
+        when(moduleRepository.findByModuleId(moduleId)).thenReturn(Optional.of(moduleModel));
 
         ModuleModel result = moduleService.getById(moduleId);
 
         assertNotNull(result);
         assertEquals(moduleModel, result);
-        verify(moduleRepository).findByCourseIdAndModuleId(moduleId);
+        verify(moduleRepository).findByModuleId(moduleId);
     }
 
     @Test
     void getById_moduleNotFound_throwsException() {
-        when(moduleRepository.findByCourseIdAndModuleId(moduleId)).thenReturn(Optional.empty());
+        when(moduleRepository.findByModuleId(moduleId)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> moduleService.getById(moduleId));
-        verify(moduleRepository).findByCourseIdAndModuleId(moduleId);
+        verify(moduleRepository).findByModuleId(moduleId);
     }
 
     // Tests for updateById
     @Test
     void updateById_success_updatesModule() {
-        ModuleRecordeDto updateDto = new ModuleRecordeDto("Updated Title", "Updated Description");
+        ModuleRecordDto updateDto = new ModuleRecordDto("Updated Title", "Updated Description");
 
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
         when(moduleRepository.save(any(ModuleModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -189,7 +189,7 @@ class ModuleServiceImplTest {
 
     @Test
     void updateById_moduleNotFound_throwsException() {
-        ModuleRecordeDto updateDto = new ModuleRecordeDto("Updated Title", "Updated Description");
+        ModuleRecordDto updateDto = new ModuleRecordDto("Updated Title", "Updated Description");
 
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
