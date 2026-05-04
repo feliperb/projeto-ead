@@ -9,16 +9,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ModuleService {
-
-    void deleteById(UUID moduleId);
-
-    ModuleModel save(@Valid ModuleRecordeDto moduleRecordDto, CourseModel courseModel);
-
-    List<ModuleModel> findAllModulesIntoCourse(UUID courseId);
-
+    ModuleModel create(@Valid ModuleRecordeDto moduleRecordDto, CourseModel courseModel);
+    List<ModuleModel> getAllModules(UUID courseId);
     ModuleModel getById(UUID moduleId);
-
-    Object updateById(UUID moduleId, @Valid ModuleRecordeDto moduleRecordeDto);
+    ModuleModel updateById(UUID moduleId, @Valid ModuleRecordeDto moduleRecordeDto);
+    void deleteById(UUID moduleId);
 }
 
 

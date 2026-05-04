@@ -109,7 +109,7 @@ class ModuleServiceImplTest {
             return savedModule;
         });
 
-        ModuleModel result = moduleService.save(moduleRecordeDto, courseModel);
+        ModuleModel result = moduleService.create(moduleRecordeDto, courseModel);
 
         assertNotNull(result);
         assertEquals("Test Module", result.getTitle());
@@ -129,7 +129,7 @@ class ModuleServiceImplTest {
 
         when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(modules);
 
-        List<ModuleModel> result = moduleService.findAllModulesIntoCourse(courseId);
+        List<ModuleModel> result = moduleService.getAllModules(courseId);
 
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -143,7 +143,7 @@ class ModuleServiceImplTest {
 
         when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(null);
 
-        List<ModuleModel> result = moduleService.findAllModulesIntoCourse(courseId);
+        List<ModuleModel> result = moduleService.getAllModules(courseId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());

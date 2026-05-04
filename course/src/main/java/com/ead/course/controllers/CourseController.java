@@ -24,7 +24,7 @@ public class CourseController {
     @PostMapping
     public ResponseEntity<Object> saveCourse(@RequestBody @Valid CourseRecordDto courseRecordDto) {
         try {
-            var course = courseService.saveIfNotExists(courseRecordDto);
+            var course = courseService.create(courseRecordDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(course);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
@@ -33,14 +33,14 @@ public class CourseController {
 
     @GetMapping
     public ResponseEntity<List<CourseModel>> getAllCourses() {
-        List<CourseModel> courses = courseService.findAll();
+        List<CourseModel> courses = courseService.getAllCourses();
         return ResponseEntity.ok(courses != null ? courses : List.of());
     }
 
     @GetMapping("/{courseId}")
     public ResponseEntity<Object> getCourseById(@PathVariable UUID courseId) {
         try {
-            var course = courseService.getByIdOrThrow(courseId);
+            var course = courseService.getById(courseId);
             return ResponseEntity.ok(course);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -51,7 +51,7 @@ public class CourseController {
     public ResponseEntity<Object> updateCourseById(@PathVariable UUID courseId,
                                                     @RequestBody @Valid CourseRecordDto courseRecordDto) {
         try {
-            var courseUpdated = courseService.updateById(courseRecordDto, courseId);
+            var courseUpdated = courseService.updateById(courseId, courseRecordDto);
             return ResponseEntity.ok(courseUpdated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

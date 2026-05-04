@@ -71,28 +71,28 @@ class ModuleControllerTest {
     // Tests for saveModule
     @Test
     void saveModule_success_returns201() {
-        when(courseService.getByIdOrThrow(courseId)).thenReturn(courseModel);
-        when(moduleService.save(moduleRecordeDto, courseModel)).thenReturn(moduleModel);
+        when(courseService.getById(courseId)).thenReturn(courseModel);
+        when(moduleService.create(moduleRecordeDto, courseModel)).thenReturn(moduleModel);
 
         ResponseEntity<Object> response = moduleController.saveModule(courseId, moduleRecordeDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(moduleModel, response.getBody());
-        verify(courseService).getByIdOrThrow(courseId);
-        verify(moduleService).save(moduleRecordeDto, courseModel);
+        verify(courseService).getById(courseId);
+        verify(moduleService).create(moduleRecordeDto, courseModel);
     }
 
     @Test
     void saveModule_courseNotFound_returns409() {
-        when(courseService.getByIdOrThrow(courseId))
+        when(courseService.getById(courseId))
                 .thenThrow(new IllegalArgumentException("Course not found with id: " + courseId));
 
         ResponseEntity<Object> response = moduleController.saveModule(courseId, moduleRecordeDto);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertInstanceOf(String.class, response.getBody());
-        verify(courseService).getByIdOrThrow(courseId);
-        verify(moduleService, never()).save(any(), any());
+        verify(courseService).getById(courseId);
+        verify(moduleService, never()).create(any(), any());
     }
 
     // Tests for getAllModules
@@ -102,7 +102,7 @@ class ModuleControllerTest {
         ModuleModel module2 = new ModuleModel();
         List<ModuleModel> modules = List.of(module1, module2);
 
-        when(moduleService.findAllModulesIntoCourse(courseId)).thenReturn(modules);
+        when(moduleService.getAllModules(courseId)).thenReturn(modules);
 
         ResponseEntity<List<ModuleModel>> response = moduleController.getAllModules(courseId);
 
@@ -110,31 +110,31 @@ class ModuleControllerTest {
         assert response.getBody() != null;
         assertEquals(2, response.getBody().size());
         assertEquals(modules, response.getBody());
-        verify(moduleService).findAllModulesIntoCourse(courseId);
+        verify(moduleService).getAllModules(courseId);
     }
 
     @Test
     void getAllModules_noModulesFound_returnsEmptyList() {
-        when(moduleService.findAllModulesIntoCourse(courseId)).thenReturn(Collections.emptyList());
+        when(moduleService.getAllModules(courseId)).thenReturn(Collections.emptyList());
 
         ResponseEntity<List<ModuleModel>> response = moduleController.getAllModules(courseId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assert response.getBody() != null;
         assertTrue(response.getBody().isEmpty());
-        verify(moduleService).findAllModulesIntoCourse(courseId);
+        verify(moduleService).getAllModules(courseId);
     }
 
     @Test
     void getAllModules_returnsEmptyListWhenNull() {
-        when(moduleService.findAllModulesIntoCourse(courseId)).thenReturn(null);
+        when(moduleService.getAllModules(courseId)).thenReturn(null);
 
         ResponseEntity<List<ModuleModel>> response = moduleController.getAllModules(courseId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assert response.getBody() != null;
         assertTrue(response.getBody().isEmpty());
-        verify(moduleService).findAllModulesIntoCourse(courseId);
+        verify(moduleService).getAllModules(courseId);
     }
 
     // Tests for getModuleById

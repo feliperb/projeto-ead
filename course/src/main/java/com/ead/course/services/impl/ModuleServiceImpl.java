@@ -26,35 +26,16 @@ public class ModuleServiceImpl implements ModuleService {
         this.lessonRepository = lessonRepository;
     }
 
-    @Transactional
-    protected void delete(ModuleModel moduleModel) {
-        if (moduleModel == null) {  throw new IllegalArgumentException("moduleModel não pode ser null");    }
-        var lessons = lessonRepository.findAllLessonsIntoModule(moduleModel.getModuleId());
-        if (lessons != null && !lessons.isEmpty()) {
-            lessonRepository.deleteAll(lessons);
-        }
-        moduleRepository.delete(moduleModel);
-    }
-
-    @Transactional
     @Override
-    public void deleteById(UUID moduleId) {
-        var moduleModel = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
-        delete(moduleModel);
-    }
-
-    @Override
-    public ModuleModel save(ModuleRecordeDto moduleRecordDto, CourseModel courseModel) {
-        var moduleModel = new ModuleModel();
-        BeanUtils.copyProperties(moduleRecordDto, moduleModel);
-        moduleModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
-        moduleModel.setCourse(courseModel);
+    public ModuleModel create(ModuleRecordeDto moduleRecordDto, CourseModel courseModel) {
+        validateNameAvailability(moduleRecordDto.title());
+        var moduleModel = mapToEntity(moduleRecordDto, courseModel);
+        setAuditFields(moduleModel);
         return moduleRepository.save(moduleModel);
     }
 
     @Override
-    public List<ModuleModel> findAllModulesIntoCourse(UUID courseId) {
+    public List<ModuleModel> getAllModules(UUID courseId) {
         List<ModuleModel> modules = moduleRepository.findAllModulesIntoCourse(courseId);
         return modules != null ? modules : List.of();
     }
@@ -65,6 +46,43 @@ public class ModuleServiceImpl implements ModuleService {
                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
     }
 
+    @Transactional
+    @Override
+    public ModuleModel updateById(UUID moduleId, ModuleRecordeDto moduleRecordeDto) {
+        var moduleModel = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
+        return update(moduleRecordeDto, moduleModel);
+    }
+
+    @Transactional
+    @Override
+    public void deleteById(UUID moduleId) {
+        var moduleModel = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
+        delete(moduleModel);
+    }
+
+
+
+    // PRIVATE METHODS
+
+    private void validateNameAvailability(String name) {
+        if (moduleRepository.existsByTitle(name)) {
+            throw new IllegalArgumentException("Course name is already taken: " + name);
+        }
+    }
+
+    private ModuleModel mapToEntity(ModuleRecordeDto moduleRecordDto, CourseModel courseModel) {
+        var moduleModel = new ModuleModel();
+        BeanUtils.copyProperties(moduleRecordDto, moduleModel);
+        moduleModel.setCourse(courseModel);
+        return moduleModel;
+    }
+
+    private void setAuditFields(ModuleModel moduleModel) {
+        moduleModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
+    }
+
     private ModuleModel update(ModuleRecordeDto courseRecordDto, ModuleModel moduleModel) {
         BeanUtils.copyProperties(courseRecordDto, moduleModel);
         //moduleModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
@@ -72,11 +90,13 @@ public class ModuleServiceImpl implements ModuleService {
     }
 
     @Transactional
-    @Override
-    public ModuleModel updateById(UUID moduleId, ModuleRecordeDto moduleRecordeDto) {
-        var moduleModel = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
-        return update(moduleRecordeDto, moduleModel);
+    protected void delete(ModuleModel moduleModel) {
+        if (moduleModel == null) {  throw new IllegalArgumentException("moduleModel não pode ser null");    }
+        var lessons = lessonRepository.findAllLessonsIntoModule(moduleModel.getModuleId());
+        if (lessons != null && !lessons.isEmpty()) {
+            lessonRepository.deleteAll(lessons);
+        }
+        moduleRepository.delete(moduleModel);
     }
 
 }

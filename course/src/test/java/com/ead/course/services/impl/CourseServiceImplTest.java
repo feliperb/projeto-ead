@@ -155,7 +155,7 @@ class CourseServiceImplTest {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
         when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
 
-        CourseModel result = courseService.updateById(updateDto, courseId);
+        CourseModel result = courseService.updateById(courseId, updateDto);
 
         assertNotNull(result);
         assertEquals(courseId, result.getCourseId());
@@ -176,7 +176,7 @@ class CourseServiceImplTest {
 
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.updateById(updateDto, courseId));
+        assertThrows(IllegalArgumentException.class, () -> courseService.updateById(courseId, updateDto));
         verify(courseRepository).findById(courseId);
         verify(courseRepository, never()).save(any());
     }
@@ -198,30 +198,12 @@ class CourseServiceImplTest {
         when(courseRepository.save(any(CourseModel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        courseService.updateById(updateDto, courseId);
+        courseService.updateById(courseId, updateDto);
 
         verify(courseRepository).save(argThat(course ->
             course.getLastUpdateDate().isAfter(oldUpdateDate) ||
             course.getLastUpdateDate().equals(oldUpdateDate)
         ));
-    }
-
-    // Tests for delete with null
-    @Test
-    void delete_nullCourseModel_throwsException() {
-        assertThrows(IllegalArgumentException.class, () -> courseService.delete(null));
-    }
-
-    // Tests for save
-    @Test
-    void save_successfullySavesCourse() {
-        when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
-
-        CourseModel result = courseService.save(courseRecordDto);
-
-        assertNotNull(result);
-        assertEquals("Test Course", result.getName());
-        verify(courseRepository).save(any(CourseModel.class));
     }
 
     // Tests for saveIfNotExists
@@ -230,7 +212,7 @@ class CourseServiceImplTest {
         when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(false);
         when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
 
-        CourseModel result = courseService.saveIfNotExists(courseRecordDto);
+        CourseModel result = courseService.create(courseRecordDto);
 
         assertNotNull(result);
         assertEquals("Test Course", result.getName());
@@ -242,52 +224,9 @@ class CourseServiceImplTest {
     void saveIfNotExists_nameAlreadyExists_throwsException() {
         when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.saveIfNotExists(courseRecordDto));
+        assertThrows(IllegalArgumentException.class, () -> courseService.create(courseRecordDto));
         verify(courseRepository).existsByName(courseRecordDto.name());
         verify(courseRepository, never()).save(any());
-    }
-
-    // Tests for existsByName
-    @Test
-    void existsByName_courseExists_returnsTrue() {
-        when(courseRepository.existsByName("Test Course")).thenReturn(true);
-
-        boolean exists = courseService.existsByName("Test Course");
-
-        assertTrue(exists);
-        verify(courseRepository).existsByName("Test Course");
-    }
-
-    @Test
-    void existsByName_courseNotExists_returnsFalse() {
-        when(courseRepository.existsByName("Non-existent Course")).thenReturn(false);
-
-        boolean exists = courseService.existsByName("Non-existent Course");
-
-        assertFalse(exists);
-        verify(courseRepository).existsByName("Non-existent Course");
-    }
-
-    // Tests for findById
-    @Test
-    void findById_courseExists_returnsOptional() {
-        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-
-        Optional<CourseModel> result = courseService.findById(courseId);
-
-        assertTrue(result.isPresent());
-        assertEquals(courseModel, result.get());
-        verify(courseRepository).findById(courseId);
-    }
-
-    @Test
-    void findById_courseNotFound_returnsEmptyOptional() {
-        when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
-
-        Optional<CourseModel> result = courseService.findById(courseId);
-
-        assertTrue(result.isEmpty());
-        verify(courseRepository).findById(courseId);
     }
 
     // Tests for getByIdOrThrow
@@ -295,7 +234,7 @@ class CourseServiceImplTest {
     void getByIdOrThrow_courseExists_returnsCourse() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
 
-        CourseModel result = courseService.getByIdOrThrow(courseId);
+        CourseModel result = courseService.getById(courseId);
 
         assertNotNull(result);
         assertEquals(courseModel, result);
@@ -306,7 +245,7 @@ class CourseServiceImplTest {
     void getByIdOrThrow_courseNotFound_throwsException() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.getByIdOrThrow(courseId));
+        assertThrows(IllegalArgumentException.class, () -> courseService.getById(courseId));
         verify(courseRepository).findById(courseId);
     }
 
@@ -318,7 +257,7 @@ class CourseServiceImplTest {
 
         when(courseRepository.findAll()).thenReturn(List.of(course1, course2));
 
-        List<CourseModel> result = courseService.findAll();
+        List<CourseModel> result = courseService.getAllCourses();
 
         assertEquals(2, result.size());
         verify(courseRepository).findAll();
@@ -328,7 +267,7 @@ class CourseServiceImplTest {
     void findAll_emptyList_returnsEmptyList() {
         when(courseRepository.findAll()).thenReturn(Collections.emptyList());
 
-        List<CourseModel> result = courseService.findAll();
+        List<CourseModel> result = courseService.getAllCourses();
 
         assertTrue(result.isEmpty());
         verify(courseRepository).findAll();
