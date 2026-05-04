@@ -2,9 +2,11 @@ package com.ead.course.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record ModuleRecordeDto(
+public record LessonRecordDto(
         @NotBlank
         String title,
         @NotBlank
-        String description) {
+        String description,
+        @NotBlank
+        String videoUrl) {
 }

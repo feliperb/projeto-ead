@@ -34,7 +34,7 @@ public class LessonModel implements Serializable {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
     @Column(nullable = false)
-    private LocalDateTime creationTime;
+    private LocalDateTime creationDate;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // tirar READ para evitar loops
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

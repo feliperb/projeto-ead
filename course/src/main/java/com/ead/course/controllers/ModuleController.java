@@ -1,6 +1,6 @@
 package com.ead.course.controllers;
 
-import com.ead.course.dtos.ModuleRecordeDto;
+import com.ead.course.dtos.ModuleRecordDto;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.services.CourseService;
 import com.ead.course.services.ModuleService;
@@ -25,7 +25,7 @@ public class ModuleController {
 
     @PostMapping("/courses/{courseId}/modules")
     public ResponseEntity<Object> saveModule(@PathVariable UUID courseId,
-                                             @RequestBody @Valid ModuleRecordeDto moduleRecordDto) {
+                                             @RequestBody @Valid ModuleRecordDto moduleRecordDto) {
         try {
             var module = moduleService.create(moduleRecordDto, courseService.getById(courseId));
             return ResponseEntity.status(HttpStatus.CREATED).body(module);
@@ -52,7 +52,7 @@ public class ModuleController {
 
     @PutMapping("/courses/modules/{moduleId}")
     public ResponseEntity<Object> updateModuleById(@PathVariable UUID moduleId,
-                                                   @RequestBody @Valid ModuleRecordeDto moduleRecordeDto) {
+                                                   @RequestBody @Valid ModuleRecordDto moduleRecordeDto) {
         try {
             var moduleUpdated = moduleService.updateById(moduleId, moduleRecordeDto);
             return ResponseEntity.ok(moduleUpdated);
