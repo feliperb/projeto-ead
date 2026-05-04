@@ -5,21 +5,23 @@ import com.ead.course.enums.CourseLevel;
 import com.ead.course.enums.CourseStatus;
 import com.ead.course.models.CourseModel;
 import com.ead.course.services.CourseService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class CourseControllerTest {
 
     @Mock
@@ -28,16 +30,24 @@ class CourseControllerTest {
     @InjectMocks
     private CourseController courseController;
 
-    private CourseModel createCourse(UUID id) {
-        CourseModel course = new CourseModel();
-        course.setCourseId(id);
-        course.setName("Test Course");
-        course.setDescription("Test Description");
-        return course;
-    }
+    private UUID courseId;
+    private CourseModel courseModel;
+    private CourseRecordDto courseRecordDto;
+    private AutoCloseable closeable;
 
-    private CourseRecordDto createDto() {
-        return new CourseRecordDto(
+    @BeforeEach
+    void setUp() {
+        closeable = MockitoAnnotations.openMocks(this);
+        courseId = UUID.randomUUID();
+
+        courseModel = new CourseModel();
+        courseModel.setCourseId(courseId);
+        courseModel.setName("Test Course");
+        courseModel.setDescription("Test Description");
+        courseModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
+        courseModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+
+        courseRecordDto = new CourseRecordDto(
                 "Test Course",
                 "Test Description",
                 CourseStatus.IN_PROGRESS,
@@ -47,175 +57,130 @@ class CourseControllerTest {
         );
     }
 
-    // ================= SAVE =================
-
-    @Test
-    void givenValidDto_whenSaveCourse_thenReturn201() {
-        var dto = createDto();
-        var model = createCourse(UUID.randomUUID());
-
-        when(courseService.saveIfNotExists(dto)).thenReturn(model);
-
-        ResponseEntity<Object> response = courseController.saveCourse(dto);
-
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(model, response.getBody());
-
-        verify(courseService).saveIfNotExists(dto);
+    @AfterEach
+    void tearDown() throws Exception {
+        if (closeable != null) {
+            closeable.close();
+        }
     }
 
     @Test
-    void givenDuplicatedName_whenSaveCourse_thenReturn409() {
-        var dto = createDto();
+    void saveCourse_success_returns201() {
+        when(courseService.saveIfNotExists(courseRecordDto)).thenReturn(courseModel);
+        ResponseEntity<Object> response = courseController.saveCourse(courseRecordDto);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(courseModel, response.getBody());
+        verify(courseService).saveIfNotExists(courseRecordDto);
+    }
 
-        when(courseService.saveIfNotExists(dto))
+    @Test
+    void saveCourse_duplicatedName_returns409() {
+        when(courseService.saveIfNotExists(courseRecordDto))
                 .thenThrow(new IllegalArgumentException("Course name is already taken"));
-
-        ResponseEntity<Object> response = courseController.saveCourse(dto);
-
+        ResponseEntity<Object> response = courseController.saveCourse(courseRecordDto);
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-
         String body = assertInstanceOf(String.class, response.getBody());
         assertTrue(body.contains("already taken"));
-
-        verify(courseService).saveIfNotExists(dto);
+        verify(courseService).saveIfNotExists(courseRecordDto);
     }
 
-    // ================= GET ALL =================
-
+    // Tests for getAllCourses
     @Test
-    void whenGetAllCourses_thenReturnList() {
-        var courses = List.of(createCourse(UUID.randomUUID()), createCourse(UUID.randomUUID()));
-
+    void getAllCourses_success_returns200() {
+        var courses = List.of(new CourseModel(), new CourseModel());
         when(courseService.findAll()).thenReturn(courses);
-
         ResponseEntity<List<CourseModel>> response = courseController.getAllCourses();
-
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
+        assert response.getBody() != null;
         assertEquals(2, response.getBody().size());
-
         verify(courseService).findAll();
     }
 
     @Test
-    void whenGetAllCoursesEmpty_thenReturnEmptyList() {
+    void getAllCourses_emptyList_returns200() {
         when(courseService.findAll()).thenReturn(List.of());
-
         ResponseEntity<List<CourseModel>> response = courseController.getAllCourses();
-
         assertEquals(HttpStatus.OK, response.getStatusCode());
-
-        var body = response.getBody();
-        assertNotNull(body);
-        assertTrue(body.isEmpty());
-
+        assert response.getBody() != null;
+        assertTrue(response.getBody().isEmpty());
         verify(courseService).findAll();
     }
 
-    // ================= GET BY ID =================
+    @Test
+    void getAllCourses_returnsEmptyListWhenNull() {
+        when(courseService.findAll()).thenReturn(null);
+        ResponseEntity<List<CourseModel>> response = courseController.getAllCourses();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assert response.getBody() != null;
+        assertTrue(response.getBody().isEmpty());
+        verify(courseService).findAll();
+    }
+
+    // Tests for getCourseById
 
     @Test
-    void givenExistingId_whenGetById_thenReturn200() {
-        UUID id = UUID.randomUUID();
-        var model = createCourse(id);
-
-        when(courseService.getByIdOrThrow(id)).thenReturn(model);
-
-        ResponseEntity<Object> response = courseController.getCourseById(id);
-
+    void getCourseById_success_returns200() {
+        when(courseService.getByIdOrThrow(courseId)).thenReturn(courseModel);
+        ResponseEntity<Object> response = courseController.getCourseById(courseId);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(model, response.getBody());
-
-        verify(courseService).getByIdOrThrow(id);
+        assertEquals(courseModel, response.getBody());
+        verify(courseService).getByIdOrThrow(courseId);
     }
 
     @Test
-    void givenInvalidId_whenGetById_thenReturn404() {
-        UUID id = UUID.randomUUID();
-
-        when(courseService.getByIdOrThrow(id))
+    void getCourseById_notFound_returns404() {
+        when(courseService.getByIdOrThrow(courseId))
                 .thenThrow(new IllegalArgumentException("Course not found"));
-
-        ResponseEntity<Object> response = courseController.getCourseById(id);
-
+        ResponseEntity<Object> response = courseController.getCourseById(courseId);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-
         String body = assertInstanceOf(String.class, response.getBody());
         assertTrue(body.contains("Course not found"));
-
-        verify(courseService).getByIdOrThrow(id);
+        verify(courseService).getByIdOrThrow(courseId);
     }
 
-    // ================= DELETE =================
-
+    // Tests for deleteCourseById
     @Test
-    void givenExistingId_whenDelete_thenReturn200() {
-        UUID id = UUID.randomUUID();
-
-        doNothing().when(courseService).deleteById(id);
-
-        ResponseEntity<Object> response = courseController.deleteCourseById(id);
-
+    void deleteCourseById_success_returns200() {
+        doNothing().when(courseService).deleteById(courseId);
+        ResponseEntity<Object> response = courseController.deleteCourseById(courseId);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNull(response.getBody());
-
-        verify(courseService).deleteById(id);
+        verify(courseService).deleteById(courseId);
     }
 
     @Test
-    void givenInvalidId_whenDelete_thenReturn404() {
-        UUID id = UUID.randomUUID();
-
+    void deleteCourseById_notFound_returns404() {
         doThrow(new IllegalArgumentException("Course not found"))
-                .when(courseService).deleteById(id);
-
-        ResponseEntity<Object> response = courseController.deleteCourseById(id);
-
+                .when(courseService).deleteById(courseId);
+        ResponseEntity<Object> response = courseController.deleteCourseById(courseId);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-
         String body = assertInstanceOf(String.class, response.getBody());
         assertTrue(body.contains("Course not found"));
-
-        verify(courseService).deleteById(id);
+        verify(courseService).deleteById(courseId);
     }
 
-    // ================= UPDATE =================
-
+    // Tests for updateCourseById
     @Test
-    void givenValidData_whenUpdate_thenReturnUpdatedCourse() {
-        UUID id = UUID.randomUUID();
-        var dto = createDto();
-        var updated = createCourse(id);
+    void updateCourseById_success_returns200() {
+        var updated = new CourseModel();
+        updated.setCourseId(courseId);
         updated.setName("Updated Course");
-
-        when(courseService.updateById(dto, id)).thenReturn(updated);
-
-        ResponseEntity<Object> response = courseController.updateCourseById(id, dto);
-
+        when(courseService.updateById(courseRecordDto, courseId)).thenReturn(updated);
+        ResponseEntity<Object> response = courseController.updateCourseById(courseId, courseRecordDto);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-
         CourseModel body = assertInstanceOf(CourseModel.class, response.getBody());
         assertEquals("Updated Course", body.getName());
-
-        verify(courseService).updateById(dto, id);
+        verify(courseService).updateById(courseRecordDto, courseId);
     }
 
     @Test
-    void givenInvalidId_whenUpdate_thenReturn404() {
-        UUID id = UUID.randomUUID();
-        var dto = createDto();
-
-        when(courseService.updateById(dto, id))
+    void updateCourseById_notFound_returns404() {
+        when(courseService.updateById(courseRecordDto, courseId))
                 .thenThrow(new IllegalArgumentException("Course not found"));
-
-        ResponseEntity<Object> response = courseController.updateCourseById(id, dto);
-
+        ResponseEntity<Object> response = courseController.updateCourseById(courseId, courseRecordDto);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-
         String body = assertInstanceOf(String.class, response.getBody());
         assertTrue(body.contains("Course not found"));
-
-        verify(courseService).updateById(dto, id);
+        verify(courseService).updateById(courseRecordDto, courseId);
     }
 }

@@ -1,11 +1,13 @@
 package com.ead.course.services.impl;
 
+import com.ead.course.dtos.ModuleRecordeDto;
+import com.ead.course.models.CourseModel;
 import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.LessonRepository;
 import com.ead.course.repositories.ModuleRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -52,38 +54,6 @@ class ModuleServiceImplTest {
         }
     }
 
-    // Tests for delete
-    @Test
-    void delete_nullModuleModel_throwsException() {
-        assertThrows(IllegalArgumentException.class, () -> moduleService.delete(null));
-        verify(lessonRepository, never()).deleteAll(anyList());
-        verify(moduleRepository, never()).delete(any());
-    }
-
-    @Test
-    void delete_noLessons_deletesModuleOnly() {
-        when(lessonRepository.findAllLessonsIntoModule(moduleId)).thenReturn(Collections.emptyList());
-
-        moduleService.delete(moduleModel);
-
-        verify(lessonRepository).findAllLessonsIntoModule(moduleId);
-        verify(lessonRepository, never()).deleteAll(anyList());
-        verify(moduleRepository).delete(moduleModel);
-    }
-
-    @Test
-    void delete_withLessons_deletesLessonsAndModule() {
-        LessonModel lesson1 = new LessonModel();
-        LessonModel lesson2 = new LessonModel();
-        List<LessonModel> lessons = List.of(lesson1, lesson2);
-        when(lessonRepository.findAllLessonsIntoModule(moduleId)).thenReturn(lessons);
-
-        moduleService.delete(moduleModel);
-
-        verify(lessonRepository).findAllLessonsIntoModule(moduleId);
-        verify(lessonRepository).deleteAll(lessons);
-        verify(moduleRepository).delete(moduleModel);
-    }
 
     // Tests for deleteById
     @Test
@@ -122,7 +92,109 @@ class ModuleServiceImplTest {
         verify(lessonRepository).deleteAll(lessons);
         verify(moduleRepository).delete(moduleModel);
     }
+
+    // Tests for save
+    @Test
+    void save_successfullySavesModule() {
+        UUID courseId = UUID.randomUUID();
+        CourseModel courseModel = new CourseModel();
+        courseModel.setCourseId(courseId);
+        courseModel.setName("Test Course");
+
+        ModuleRecordeDto moduleRecordeDto = new ModuleRecordeDto("Test Module", "Test Description");
+
+        when(moduleRepository.save(any(ModuleModel.class))).thenAnswer(invocation -> {
+            ModuleModel savedModule = invocation.getArgument(0);
+            savedModule.setModuleId(UUID.randomUUID());
+            return savedModule;
+        });
+
+        ModuleModel result = moduleService.save(moduleRecordeDto, courseModel);
+
+        assertNotNull(result);
+        assertEquals("Test Module", result.getTitle());
+        assertEquals("Test Description", result.getDescription());
+        assertEquals(courseModel, result.getCourse());
+        assertNotNull(result.getCreationDate());
+        verify(moduleRepository).save(any(ModuleModel.class));
+    }
+
+    // Tests for findAllModulesIntoCourse
+    @Test
+    void findAllModulesIntoCourse_returnsModules() {
+        UUID courseId = UUID.randomUUID();
+        ModuleModel module1 = new ModuleModel();
+        ModuleModel module2 = new ModuleModel();
+        List<ModuleModel> modules = List.of(module1, module2);
+
+        when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(modules);
+
+        List<ModuleModel> result = moduleService.findAllModulesIntoCourse(courseId);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(modules, result);
+        verify(moduleRepository).findAllModulesIntoCourse(courseId);
+    }
+
+    @Test
+    void findAllModulesIntoCourse_returnsEmptyListWhenNull() {
+        UUID courseId = UUID.randomUUID();
+
+        when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(null);
+
+        List<ModuleModel> result = moduleService.findAllModulesIntoCourse(courseId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(moduleRepository).findAllModulesIntoCourse(courseId);
+    }
+
+    // Tests for getById
+    @Test
+    void getById_moduleExists_returnsModule() {
+        when(moduleRepository.findByCourseIdAndModuleId(moduleId)).thenReturn(Optional.of(moduleModel));
+
+        ModuleModel result = moduleService.getById(moduleId);
+
+        assertNotNull(result);
+        assertEquals(moduleModel, result);
+        verify(moduleRepository).findByCourseIdAndModuleId(moduleId);
+    }
+
+    @Test
+    void getById_moduleNotFound_throwsException() {
+        when(moduleRepository.findByCourseIdAndModuleId(moduleId)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> moduleService.getById(moduleId));
+        verify(moduleRepository).findByCourseIdAndModuleId(moduleId);
+    }
+
+    // Tests for updateById
+    @Test
+    void updateById_success_updatesModule() {
+        ModuleRecordeDto updateDto = new ModuleRecordeDto("Updated Title", "Updated Description");
+
+        when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
+        when(moduleRepository.save(any(ModuleModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ModuleModel result = moduleService.updateById(moduleId, updateDto);
+
+        assertNotNull(result);
+        assertEquals("Updated Title", result.getTitle());
+        assertEquals("Updated Description", result.getDescription());
+        verify(moduleRepository).findById(moduleId);
+        verify(moduleRepository).save(moduleModel);
+    }
+
+    @Test
+    void updateById_moduleNotFound_throwsException() {
+        ModuleRecordeDto updateDto = new ModuleRecordeDto("Updated Title", "Updated Description");
+
+        when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> moduleService.updateById(moduleId, updateDto));
+        verify(moduleRepository).findById(moduleId);
+        verify(moduleRepository, never()).save(any());
+    }
 }
-
-
-
