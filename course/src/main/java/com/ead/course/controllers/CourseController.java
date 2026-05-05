@@ -22,32 +22,29 @@ public class CourseController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> saveCourse(@RequestBody @Valid CourseRecordDto courseRecordDto) {
-        var course = courseService.create(courseRecordDto);
+    public ResponseEntity<CourseModel> createCourse(@RequestBody @Valid CourseRecordDto dto) {
+        CourseModel course = courseService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(course);
     }
 
     @GetMapping
     public ResponseEntity<List<CourseModel>> getAllCourses() {
-        List<CourseModel> courses = courseService.getAllCourses();
-        return ResponseEntity.ok(courses != null ? courses : List.of());
+        return ResponseEntity.ok(courseService.getAllCourses());
     }
 
     @GetMapping("/{courseId}")
-    public ResponseEntity<Object> getCourseById(@PathVariable UUID courseId) {
-        var course = courseService.getById(courseId);
-        return ResponseEntity.ok(course);
+    public ResponseEntity<CourseModel> getCourseById(@PathVariable UUID courseId) {
+        return ResponseEntity.ok(courseService.getById(courseId));
     }
 
     @PutMapping("/{courseId}")
-    public ResponseEntity<Object> updateCourseById(@PathVariable UUID courseId, @RequestBody @Valid CourseRecordDto courseRecordDto) {
-        var courseUpdated = courseService.updateById(courseId, courseRecordDto);
-        return ResponseEntity.ok(courseUpdated);
+    public ResponseEntity<CourseModel> updateCourse(@PathVariable UUID courseId, @RequestBody @Valid CourseRecordDto dto) {
+        return ResponseEntity.ok(courseService.updateById(courseId, dto));
     }
 
     @DeleteMapping("/{courseId}")
-    public ResponseEntity<Object> deleteCourseById(@PathVariable UUID courseId) {
+    public ResponseEntity<Void> deleteCourse(@PathVariable UUID courseId) {
         courseService.deleteById(courseId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

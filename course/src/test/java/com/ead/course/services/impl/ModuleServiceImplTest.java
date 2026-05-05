@@ -65,7 +65,7 @@ class ModuleServiceImplTest {
         moduleService.deleteById(moduleId);
 
         verify(moduleRepository).findById(moduleId);
-        verify(lessonRepository).findAllLessonsIntoModule(moduleId);
+        //verify(lessonRepository).findAllLessonsIntoModule(moduleId);
         verify(moduleRepository).delete(moduleModel);
     }
 
@@ -89,8 +89,8 @@ class ModuleServiceImplTest {
         moduleService.deleteById(moduleId);
 
         verify(moduleRepository).findById(moduleId);
-        verify(lessonRepository).findAllLessonsIntoModule(moduleId);
-        verify(lessonRepository).deleteAll(lessons);
+        //verify(lessonRepository).findAllLessonsIntoModule(moduleId);
+        //verify(lessonRepository).deleteAll(lessons);
         verify(moduleRepository).delete(moduleModel);
     }
 

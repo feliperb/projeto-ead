@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/lessons")
 public class LessonController {
 
     final ModuleService moduleService;
@@ -23,33 +24,31 @@ public class LessonController {
         this.lessonService = lessonService;
     }
 
-    @PostMapping("/modules/{moduleId}/lessons")
-    public ResponseEntity<Object> saveLesson(@PathVariable UUID moduleId, @RequestBody @Valid LessonRecordDto lessonRecordDto) {
-        var lesson = lessonService.create(lessonRecordDto, moduleService.getById(moduleId));
+    @PostMapping("/modules/{moduleId}")
+    public ResponseEntity<LessonModel> createLesson(@PathVariable UUID moduleId, @RequestBody @Valid LessonRecordDto dto) {
+        var module = moduleService.getById(moduleId);
+        LessonModel lesson = lessonService.create(dto, module);
         return ResponseEntity.status(HttpStatus.CREATED).body(lesson);
     }
 
-    @GetMapping("/modules/{moduleId}/lessons")
+    @GetMapping("/modules/{moduleId}")
     public ResponseEntity<List<LessonModel>> getAllLessons(@PathVariable UUID moduleId) {
-        List<LessonModel> lessons = lessonService.getAllLessons(moduleId);
-        return ResponseEntity.ok(lessons != null ? lessons : List.of());
+        return ResponseEntity.ok(lessonService.getAllLessons(moduleId));
     }
 
-    @GetMapping("/modules/lessons/{lessonId}")
-    public ResponseEntity<Object> getLessonById(@PathVariable UUID lessonId) {
-        var lesson = lessonService.getById(lessonId);
-        return ResponseEntity.ok(lesson);
+    @GetMapping("/{lessonId}")
+    public ResponseEntity<LessonModel> getLessonById(@PathVariable UUID lessonId) {
+        return ResponseEntity.ok(lessonService.getById(lessonId));
     }
 
-    @PutMapping("/modules/lessons/{lessonId}")
-    public ResponseEntity<Object> updateLessonById(@PathVariable UUID lessonId, @RequestBody @Valid LessonRecordDto lessonRecordeDto) {
-        var lessonUpdated = lessonService.updateById(lessonId, lessonRecordeDto);
-        return ResponseEntity.ok(lessonUpdated);
+    @PutMapping("/{lessonId}")
+    public ResponseEntity<LessonModel> updateLesson(@PathVariable UUID lessonId, @RequestBody @Valid LessonRecordDto dto) {
+        return ResponseEntity.ok(lessonService.updateById(lessonId, dto));
     }
 
-    @DeleteMapping("/modules/lessons/{lessonId}")
-    public ResponseEntity<Object> deleteLessonById(@PathVariable UUID lessonId) {
+    @DeleteMapping("/{lessonId}")
+    public ResponseEntity<Void> deleteLesson(@PathVariable UUID lessonId) {
         lessonService.deleteById(lessonId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

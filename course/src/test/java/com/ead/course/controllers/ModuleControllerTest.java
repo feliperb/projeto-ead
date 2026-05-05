@@ -75,7 +75,7 @@ class ModuleControllerTest {
         when(courseService.getById(courseId)).thenReturn(courseModel);
         when(moduleService.create(moduleRecordeDto, courseModel)).thenReturn(moduleModel);
 
-        ResponseEntity<Object> response = moduleController.saveModule(courseId, moduleRecordeDto);
+        ResponseEntity<ModuleModel> response = moduleController.createModule(courseId, moduleRecordeDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(moduleModel, response.getBody());
@@ -84,14 +84,11 @@ class ModuleControllerTest {
     }
 
     @Test
-    void saveModule_courseNotFound_returns409() {
+    void saveModule_courseNotFound_throwsException() {
         when(courseService.getById(courseId))
-                .thenThrow(new NotFoundException("Course not found with id: " + courseId));
-
-        ResponseEntity<Object> response = moduleController.saveModule(courseId, moduleRecordeDto);
-
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
+                .thenThrow(new NotFoundException("Course not found"));
+        assertThrows(NotFoundException.class, () ->
+            moduleController.createModule(courseId, moduleRecordeDto));
         verify(courseService).getById(courseId);
         verify(moduleService, never()).create(any(), any());
     }
@@ -126,24 +123,12 @@ class ModuleControllerTest {
         verify(moduleService).getAllModules(courseId);
     }
 
-    @Test
-    void getAllModules_returnsEmptyListWhenNull() {
-        when(moduleService.getAllModules(courseId)).thenReturn(null);
-
-        ResponseEntity<List<ModuleModel>> response = moduleController.getAllModules(courseId);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertTrue(response.getBody().isEmpty());
-        verify(moduleService).getAllModules(courseId);
-    }
-
     // Tests for getModuleById
     @Test
     void getModuleById_success_returns200() {
         when(moduleService.getById(moduleId)).thenReturn(moduleModel);
 
-        ResponseEntity<Object> response = moduleController.getModuleById(moduleId);
+        ResponseEntity<ModuleModel> response = moduleController.getModuleById(moduleId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(moduleModel, response.getBody());
@@ -151,40 +136,28 @@ class ModuleControllerTest {
     }
 
     @Test
-    void getModuleById_notFound_returns404() {
+    void getModuleById_notFound_throwsException() {
         when(moduleService.getById(moduleId))
-                .thenThrow(new NotFoundException("Module not found with id: " + moduleId));
-
-        ResponseEntity<Object> response = moduleController.getModuleById(moduleId);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Module not found"));
+                .thenThrow(new NotFoundException("Module not found"));
+        assertThrows(NotFoundException.class, () -> moduleController.getModuleById(moduleId));
         verify(moduleService).getById(moduleId);
     }
 
     // Tests for deleteModuleById
     @Test
-    void deleteModuleById_success_returns200() {
+    void deleteModuleById_success_returns204() {
         doNothing().when(moduleService).deleteById(moduleId);
-
-        ResponseEntity<Object> response = moduleController.deleteModuleById(moduleId);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        ResponseEntity<Void> response = moduleController.deleteModule(moduleId);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
         verify(moduleService).deleteById(moduleId);
     }
 
     @Test
-    void deleteModuleById_notFound_returns404() {
-        doThrow(new NotFoundException("Module not found with id: " + moduleId))
+    void deleteModuleById_notFound_throwsException() {
+        doThrow(new NotFoundException("Module not found"))
                 .when(moduleService).deleteById(moduleId);
-
-        ResponseEntity<Object> response = moduleController.deleteModuleById(moduleId);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Module not found"));
+        assertThrows(NotFoundException.class, () -> moduleController.deleteModule(moduleId));
         verify(moduleService).deleteById(moduleId);
     }
 
@@ -199,7 +172,7 @@ class ModuleControllerTest {
 
         when(moduleService.updateById(moduleId, moduleRecordeDto)).thenReturn(updatedModule);
 
-        ResponseEntity<Object> response = moduleController.updateModuleById(moduleId, moduleRecordeDto);
+        ResponseEntity<ModuleModel> response = moduleController.updateModule(moduleId, moduleRecordeDto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(updatedModule, response.getBody());
@@ -207,15 +180,10 @@ class ModuleControllerTest {
     }
 
     @Test
-    void updateModuleById_notFound_returns404() {
+    void updateModuleById_notFound_throwsException() {
         when(moduleService.updateById(moduleId, moduleRecordeDto))
-                .thenThrow(new NotFoundException("Module not found with id: " + moduleId));
-
-        ResponseEntity<Object> response = moduleController.updateModuleById(moduleId, moduleRecordeDto);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Module not found"));
+                .thenThrow(new NotFoundException("Module not found"));
+        assertThrows(NotFoundException.class, () -> moduleController.updateModule(moduleId, moduleRecordeDto));
         verify(moduleService).updateById(moduleId, moduleRecordeDto);
     }
 
@@ -228,11 +196,11 @@ class ModuleControllerTest {
 
         when(moduleService.updateById(moduleId, moduleRecordeDto)).thenReturn(updatedModule);
 
-        ResponseEntity<Object> response = moduleController.updateModuleById(moduleId, moduleRecordeDto);
+        ResponseEntity<ModuleModel> response = moduleController.updateModule(moduleId, moduleRecordeDto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        ModuleModel result = (ModuleModel) response.getBody();
+        ModuleModel result = response.getBody();
         assertEquals("New Title", result.getTitle());
         assertEquals("New Description", result.getDescription());
         verify(moduleService).updateById(moduleId, moduleRecordeDto);

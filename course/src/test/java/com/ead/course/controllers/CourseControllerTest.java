@@ -67,22 +67,18 @@ class CourseControllerTest {
     }
 
     @Test
-    void saveCourse_success_returns201() {
+    void createCourse_success_returns201() {
         when(courseService.create(courseRecordDto)).thenReturn(courseModel);
-        ResponseEntity<Object> response = courseController.saveCourse(courseRecordDto);
+        ResponseEntity<CourseModel> response = courseController.createCourse(courseRecordDto);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(courseModel, response.getBody());
         verify(courseService).create(courseRecordDto);
     }
 
     @Test
-    void saveCourse_duplicatedName_returns409() {
-        when(courseService.create(courseRecordDto))
-                .thenThrow(new ConflictException("Course name is already taken"));
-        ResponseEntity<Object> response = courseController.saveCourse(courseRecordDto);
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        String body = assertInstanceOf(String.class, response.getBody());
-        assertTrue(body.contains("already taken"));
+    void createCourse_duplicatedName_throwsException() {
+        when(courseService.create(courseRecordDto)).thenThrow(new ConflictException("Course name is already taken"));
+        assertThrows(ConflictException.class, () -> courseController.createCourse(courseRecordDto));
         verify(courseService).create(courseRecordDto);
     }
 
@@ -108,56 +104,39 @@ class CourseControllerTest {
         verify(courseService).getAllCourses();
     }
 
-    @Test
-    void getAllCourses_returnsEmptyListWhenNull() {
-        when(courseService.getAllCourses()).thenReturn(null);
-        ResponseEntity<List<CourseModel>> response = courseController.getAllCourses();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertTrue(response.getBody().isEmpty());
-        verify(courseService).getAllCourses();
-    }
-
     // Tests for getCourseById
 
     @Test
     void getCourseById_success_returns200() {
         when(courseService.getById(courseId)).thenReturn(courseModel);
-        ResponseEntity<Object> response = courseController.getCourseById(courseId);
+        ResponseEntity<CourseModel> response = courseController.getCourseById(courseId);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(courseModel, response.getBody());
         verify(courseService).getById(courseId);
     }
 
     @Test
-    void getCourseById_notFound_returns404() {
+    void getCourseById_notFound_throwsException() {
         when(courseService.getById(courseId))
                 .thenThrow(new NotFoundException("Course not found"));
-        ResponseEntity<Object> response = courseController.getCourseById(courseId);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        String body = assertInstanceOf(String.class, response.getBody());
-        assertTrue(body.contains("Course not found"));
+        assertThrows(NotFoundException.class, () -> courseController.getCourseById(courseId));
         verify(courseService).getById(courseId);
     }
 
     // Tests for deleteCourseById
     @Test
-    void deleteCourseById_success_returns200() {
+    void deleteCourseById_success_returns204() {
         doNothing().when(courseService).deleteById(courseId);
-        ResponseEntity<Object> response = courseController.deleteCourseById(courseId);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        ResponseEntity<Void> response = courseController.deleteCourse(courseId);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
         verify(courseService).deleteById(courseId);
     }
 
     @Test
-    void deleteCourseById_notFound_returns404() {
-        doThrow(new NotFoundException("Course not found"))
-                .when(courseService).deleteById(courseId);
-        ResponseEntity<Object> response = courseController.deleteCourseById(courseId);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        String body = assertInstanceOf(String.class, response.getBody());
-        assertTrue(body.contains("Course not found"));
+    void deleteCourseById_notFound_throwsException() {
+        doThrow(new NotFoundException("Course not found")).when(courseService).deleteById(courseId);
+        assertThrows(NotFoundException.class, () -> courseController.deleteCourse(courseId));
         verify(courseService).deleteById(courseId);
     }
 
@@ -168,7 +147,7 @@ class CourseControllerTest {
         updated.setCourseId(courseId);
         updated.setName("Updated Course");
         when(courseService.updateById(courseId, courseRecordDto)).thenReturn(updated);
-        ResponseEntity<Object> response = courseController.updateCourseById(courseId, courseRecordDto);
+        ResponseEntity<CourseModel> response = courseController.updateCourse(courseId, courseRecordDto);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         CourseModel body = assertInstanceOf(CourseModel.class, response.getBody());
         assertEquals("Updated Course", body.getName());
@@ -176,13 +155,10 @@ class CourseControllerTest {
     }
 
     @Test
-    void updateCourseById_notFound_returns404() {
+    void updateCourseById_notFound_throwsException() {
         when(courseService.updateById(courseId, courseRecordDto))
                 .thenThrow(new NotFoundException("Course not found"));
-        ResponseEntity<Object> response = courseController.updateCourseById(courseId, courseRecordDto);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        String body = assertInstanceOf(String.class, response.getBody());
-        assertTrue(body.contains("Course not found"));
+        assertThrows(NotFoundException.class, () -> courseController.updateCourse(courseId, courseRecordDto));
         verify(courseService).updateById(courseId, courseRecordDto);
     }
 }

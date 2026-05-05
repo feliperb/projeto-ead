@@ -76,7 +76,7 @@ class LessonControllerTest {
         when(moduleService.getById(moduleId)).thenReturn(moduleModel);
         when(lessonService.create(lessonRecordDto, moduleModel)).thenReturn(lessonModel);
 
-        ResponseEntity<Object> response = lessonController.saveLesson(moduleId, lessonRecordDto);
+        ResponseEntity<LessonModel> response = lessonController.createLesson(moduleId, lessonRecordDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(lessonModel, response.getBody());
@@ -85,15 +85,10 @@ class LessonControllerTest {
     }
 
     @Test
-    void saveLesson_moduleNotFound_returns409() {
+    void saveLesson_moduleNotFound_throwsException() {
         when(moduleService.getById(moduleId))
-                .thenThrow(new NotFoundException("Module not found with id: " + moduleId));
-
-        ResponseEntity<Object> response = lessonController.saveLesson(moduleId, lessonRecordDto);
-
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Module not found"));
+                .thenThrow(new NotFoundException("Module not found"));
+        assertThrows(NotFoundException.class, () -> lessonController.createLesson(moduleId, lessonRecordDto));
         verify(moduleService).getById(moduleId);
         verify(lessonService, never()).create(any(), any());
     }
@@ -127,24 +122,12 @@ class LessonControllerTest {
         verify(lessonService).getAllLessons(moduleId);
     }
 
-    @Test
-    void getAllLessons_returnsEmptyListWhenNull() {
-        when(lessonService.getAllLessons(moduleId)).thenReturn(null);
-
-        ResponseEntity<List<LessonModel>> response = lessonController.getAllLessons(moduleId);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertTrue(response.getBody().isEmpty());
-        verify(lessonService).getAllLessons(moduleId);
-    }
-
     // Tests for getLessonById
     @Test
     void getLessonById_success_returns200() {
         when(lessonService.getById(lessonId)).thenReturn(lessonModel);
 
-        ResponseEntity<Object> response = lessonController.getLessonById(lessonId);
+        ResponseEntity<LessonModel> response = lessonController.getLessonById(lessonId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(lessonModel, response.getBody());
@@ -152,15 +135,10 @@ class LessonControllerTest {
     }
 
     @Test
-    void getLessonById_notFound_returns404() {
+    void getLessonById_notFound_throwsException() {
         when(lessonService.getById(lessonId))
-                .thenThrow(new NotFoundException("Lesson not found with id: " + lessonId));
-
-        ResponseEntity<Object> response = lessonController.getLessonById(lessonId);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Lesson not found"));
+                .thenThrow(new NotFoundException("Lesson not found"));
+        assertThrows(NotFoundException.class, () -> lessonController.getLessonById(lessonId));
         verify(lessonService).getById(lessonId);
     }
 
@@ -175,7 +153,7 @@ class LessonControllerTest {
 
         when(lessonService.updateById(lessonId, lessonRecordDto)).thenReturn(updatedLesson);
 
-        ResponseEntity<Object> response = lessonController.updateLessonById(lessonId, lessonRecordDto);
+        ResponseEntity<LessonModel> response = lessonController.updateLesson(lessonId, lessonRecordDto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -184,15 +162,10 @@ class LessonControllerTest {
     }
 
     @Test
-    void updateLessonById_notFound_returns404() {
+    void updateLessonById_notFound_throwsException() {
         when(lessonService.updateById(lessonId, lessonRecordDto))
-                .thenThrow(new NotFoundException("Lesson not found with id: " + lessonId));
-
-        ResponseEntity<Object> response = lessonController.updateLessonById(lessonId, lessonRecordDto);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Lesson not found"));
+                .thenThrow(new NotFoundException("Lesson not found"));
+        assertThrows(NotFoundException.class, () -> lessonController.updateLesson(lessonId, lessonRecordDto));
         verify(lessonService).updateById(lessonId, lessonRecordDto);
     }
 
@@ -206,11 +179,11 @@ class LessonControllerTest {
 
         when(lessonService.updateById(lessonId, lessonRecordDto)).thenReturn(updatedLesson);
 
-        ResponseEntity<Object> response = lessonController.updateLessonById(lessonId, lessonRecordDto);
+        ResponseEntity<LessonModel> response = lessonController.updateLesson(lessonId, lessonRecordDto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        LessonModel result = (LessonModel) response.getBody();
+        LessonModel result = response.getBody();
         assertEquals("New Title", result.getTitle());
         assertEquals("New Description", result.getDescription());
         assertEquals("new-video-url", result.getVideoUrl());
@@ -219,26 +192,22 @@ class LessonControllerTest {
 
     // Tests for deleteLessonById
     @Test
-    void deleteLessonById_success_returns200() {
+    void deleteLessonById_success_returns204() {
         doNothing().when(lessonService).deleteById(lessonId);
 
-        ResponseEntity<Object> response = lessonController.deleteLessonById(lessonId);
+        ResponseEntity<Void> response = lessonController.deleteLesson(lessonId);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
+
         verify(lessonService).deleteById(lessonId);
     }
 
     @Test
-    void deleteLessonById_notFound_returns404() {
-        doThrow(new NotFoundException("Lesson not found with id: " + lessonId))
+    void deleteLessonById_notFound_throwsException() {
+        doThrow(new NotFoundException("Lesson not found"))
                 .when(lessonService).deleteById(lessonId);
-
-        ResponseEntity<Object> response = lessonController.deleteLessonById(lessonId);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertInstanceOf(String.class, response.getBody());
-        assertTrue(((String) response.getBody()).contains("Lesson not found"));
+        assertThrows(NotFoundException.class, () -> lessonController.deleteLesson(lessonId));
         verify(lessonService).deleteById(lessonId);
     }
 }
