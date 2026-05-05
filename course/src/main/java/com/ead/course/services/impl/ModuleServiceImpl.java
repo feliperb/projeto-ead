@@ -1,6 +1,8 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.ModuleRecordDto;
+import com.ead.course.exceptions.ConflictException;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.LessonRepository;
@@ -42,24 +44,26 @@ public class ModuleServiceImpl implements ModuleService {
 
     @Override
     public ModuleModel getById(UUID moduleId) {
-        return moduleRepository.findByModuleId(moduleId)
-               .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
+        return moduleRepository.findById(moduleId)
+               .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
     }
 
     @Transactional
     @Override
     public ModuleModel updateById(UUID moduleId, ModuleRecordDto moduleRecordeDto) {
         var moduleModel = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
+                .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
         return update(moduleRecordeDto, moduleModel);
     }
 
     @Transactional
     @Override
     public void deleteById(UUID moduleId) {
-        var moduleModel = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new IllegalArgumentException("Module not found with id: " + moduleId));
-        delete(moduleModel);
+        ModuleModel module = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
+        boolean hasLessons = lessonRepository.existsByModule_ModuleId(moduleId);
+        if (hasLessons) {   throw new ConflictException("Cannot delete module because it has associated lessons");  }
+        moduleRepository.delete(module);
     }
 
 
@@ -68,7 +72,7 @@ public class ModuleServiceImpl implements ModuleService {
 
     private void validateNameAvailability(String name) {
         if (moduleRepository.existsByTitle(name)) {
-            throw new IllegalArgumentException("Module title is already taken: " + name);
+            throw new ConflictException("Module title is already taken: " + name);
         }
     }
 
@@ -88,15 +92,4 @@ public class ModuleServiceImpl implements ModuleService {
         //moduleModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         return moduleRepository.save(moduleModel);
     }
-
-    @Transactional
-    protected void delete(ModuleModel moduleModel) {
-        if (moduleModel == null) {  throw new IllegalArgumentException("moduleModel não pode ser null");    }
-        var lessons = lessonRepository.findAllLessonsIntoModule(moduleModel.getModuleId());
-        if (lessons != null && !lessons.isEmpty()) {
-            lessonRepository.deleteAll(lessons);
-        }
-        moduleRepository.delete(moduleModel);
-    }
-
 }

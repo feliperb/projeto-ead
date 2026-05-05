@@ -3,6 +3,8 @@ package com.ead.course.services.impl;
 import com.ead.course.dtos.CourseRecordDto;
 import com.ead.course.enums.CourseLevel;
 import com.ead.course.enums.CourseStatus;
+import com.ead.course.exceptions.ConflictException;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
@@ -86,7 +88,7 @@ class CourseServiceImplTest {
     void deleteById_courseNotFound_throwsException() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.deleteById(courseId));
+        assertThrows(NotFoundException.class, () -> courseService.deleteById(courseId));
         verify(courseRepository).findById(courseId);
         verify(courseRepository, never()).delete(any());
     }
@@ -176,7 +178,7 @@ class CourseServiceImplTest {
 
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.updateById(courseId, updateDto));
+        assertThrows(NotFoundException.class, () -> courseService.updateById(courseId, updateDto));
         verify(courseRepository).findById(courseId);
         verify(courseRepository, never()).save(any());
     }
@@ -224,7 +226,7 @@ class CourseServiceImplTest {
     void saveIfNotExists_nameAlreadyExists_throwsException() {
         when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.create(courseRecordDto));
+        assertThrows(ConflictException.class, () -> courseService.create(courseRecordDto));
         verify(courseRepository).existsByName(courseRecordDto.name());
         verify(courseRepository, never()).save(any());
     }
@@ -245,7 +247,7 @@ class CourseServiceImplTest {
     void getByIdOrThrow_courseNotFound_throwsException() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> courseService.getById(courseId));
+        assertThrows(NotFoundException.class, () -> courseService.getById(courseId));
         verify(courseRepository).findById(courseId);
     }
 

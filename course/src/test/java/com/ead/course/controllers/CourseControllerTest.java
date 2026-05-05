@@ -3,6 +3,8 @@ package com.ead.course.controllers;
 import com.ead.course.dtos.CourseRecordDto;
 import com.ead.course.enums.CourseLevel;
 import com.ead.course.enums.CourseStatus;
+import com.ead.course.exceptions.ConflictException;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.services.CourseService;
 import org.junit.jupiter.api.AfterEach;
@@ -76,7 +78,7 @@ class CourseControllerTest {
     @Test
     void saveCourse_duplicatedName_returns409() {
         when(courseService.create(courseRecordDto))
-                .thenThrow(new IllegalArgumentException("Course name is already taken"));
+                .thenThrow(new ConflictException("Course name is already taken"));
         ResponseEntity<Object> response = courseController.saveCourse(courseRecordDto);
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         String body = assertInstanceOf(String.class, response.getBody());
@@ -130,7 +132,7 @@ class CourseControllerTest {
     @Test
     void getCourseById_notFound_returns404() {
         when(courseService.getById(courseId))
-                .thenThrow(new IllegalArgumentException("Course not found"));
+                .thenThrow(new NotFoundException("Course not found"));
         ResponseEntity<Object> response = courseController.getCourseById(courseId);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         String body = assertInstanceOf(String.class, response.getBody());
@@ -150,7 +152,7 @@ class CourseControllerTest {
 
     @Test
     void deleteCourseById_notFound_returns404() {
-        doThrow(new IllegalArgumentException("Course not found"))
+        doThrow(new NotFoundException("Course not found"))
                 .when(courseService).deleteById(courseId);
         ResponseEntity<Object> response = courseController.deleteCourseById(courseId);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -176,7 +178,7 @@ class CourseControllerTest {
     @Test
     void updateCourseById_notFound_returns404() {
         when(courseService.updateById(courseId, courseRecordDto))
-                .thenThrow(new IllegalArgumentException("Course not found"));
+                .thenThrow(new NotFoundException("Course not found"));
         ResponseEntity<Object> response = courseController.updateCourseById(courseId, courseRecordDto);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         String body = assertInstanceOf(String.class, response.getBody());

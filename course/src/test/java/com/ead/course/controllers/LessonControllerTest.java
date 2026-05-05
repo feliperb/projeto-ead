@@ -1,6 +1,7 @@
 package com.ead.course.controllers;
 
 import com.ead.course.dtos.LessonRecordDto;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.services.LessonService;
@@ -86,7 +87,7 @@ class LessonControllerTest {
     @Test
     void saveLesson_moduleNotFound_returns409() {
         when(moduleService.getById(moduleId))
-                .thenThrow(new IllegalArgumentException("Module not found with id: " + moduleId));
+                .thenThrow(new NotFoundException("Module not found with id: " + moduleId));
 
         ResponseEntity<Object> response = lessonController.saveLesson(moduleId, lessonRecordDto);
 
@@ -153,7 +154,7 @@ class LessonControllerTest {
     @Test
     void getLessonById_notFound_returns404() {
         when(lessonService.getById(lessonId))
-                .thenThrow(new IllegalArgumentException("Lesson not found with id: " + lessonId));
+                .thenThrow(new NotFoundException("Lesson not found with id: " + lessonId));
 
         ResponseEntity<Object> response = lessonController.getLessonById(lessonId);
 
@@ -185,7 +186,7 @@ class LessonControllerTest {
     @Test
     void updateLessonById_notFound_returns404() {
         when(lessonService.updateById(lessonId, lessonRecordDto))
-                .thenThrow(new IllegalArgumentException("Lesson not found with id: " + lessonId));
+                .thenThrow(new NotFoundException("Lesson not found with id: " + lessonId));
 
         ResponseEntity<Object> response = lessonController.updateLessonById(lessonId, lessonRecordDto);
 
@@ -230,7 +231,7 @@ class LessonControllerTest {
 
     @Test
     void deleteLessonById_notFound_returns404() {
-        doThrow(new IllegalArgumentException("Lesson not found with id: " + lessonId))
+        doThrow(new NotFoundException("Lesson not found with id: " + lessonId))
                 .when(lessonService).deleteById(lessonId);
 
         ResponseEntity<Object> response = lessonController.deleteLessonById(lessonId);

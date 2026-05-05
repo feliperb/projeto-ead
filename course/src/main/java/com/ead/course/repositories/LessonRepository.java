@@ -21,4 +21,6 @@ public interface LessonRepository extends JpaRepository<LessonModel, UUID> {
     Optional<LessonModel> findByLessonId(@Param("lessonId") UUID lessonId);
 
     boolean existsByTitle(String name);
+
+    boolean existsByModule_ModuleId(UUID moduleId);
 }

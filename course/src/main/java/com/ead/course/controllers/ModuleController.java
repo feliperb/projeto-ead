@@ -24,14 +24,9 @@ public class ModuleController {
     }
 
     @PostMapping("/courses/{courseId}/modules")
-    public ResponseEntity<Object> saveModule(@PathVariable UUID courseId,
-                                             @RequestBody @Valid ModuleRecordDto moduleRecordDto) {
-        try {
-            var module = moduleService.create(moduleRecordDto, courseService.getById(courseId));
-            return ResponseEntity.status(HttpStatus.CREATED).body(module);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+    public ResponseEntity<Object> saveModule(@PathVariable UUID courseId, @RequestBody @Valid ModuleRecordDto moduleRecordDto) {
+        var module = moduleService.create(moduleRecordDto, courseService.getById(courseId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(module);
     }
 
     @GetMapping("/courses/{courseId}/modules")
@@ -42,32 +37,19 @@ public class ModuleController {
 
     @GetMapping("/courses/modules/{moduleId}")
     public ResponseEntity<Object> getModuleById(@PathVariable UUID moduleId) {
-        try {
-            var module = moduleService.getById(moduleId);
-            return ResponseEntity.ok(module);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        var module = moduleService.getById(moduleId);
+        return ResponseEntity.ok(module);
     }
 
     @PutMapping("/courses/modules/{moduleId}")
-    public ResponseEntity<Object> updateModuleById(@PathVariable UUID moduleId,
-                                                   @RequestBody @Valid ModuleRecordDto moduleRecordeDto) {
-        try {
-            var moduleUpdated = moduleService.updateById(moduleId, moduleRecordeDto);
-            return ResponseEntity.ok(moduleUpdated);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<Object> updateModuleById(@PathVariable UUID moduleId, @RequestBody @Valid ModuleRecordDto moduleRecordeDto) {
+        var moduleUpdated = moduleService.updateById(moduleId, moduleRecordeDto);
+        return ResponseEntity.ok(moduleUpdated);
     }
 
     @DeleteMapping("/courses/modules/{moduleId}")
     public ResponseEntity<Object> deleteModuleById(@PathVariable UUID moduleId) {
-        try {
-            moduleService.deleteById(moduleId);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        moduleService.deleteById(moduleId);
+        return ResponseEntity.ok().build();
     }
 }

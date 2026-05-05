@@ -23,12 +23,8 @@ public class CourseController {
 
     @PostMapping
     public ResponseEntity<Object> saveCourse(@RequestBody @Valid CourseRecordDto courseRecordDto) {
-        try {
-            var course = courseService.create(courseRecordDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(course);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+        var course = courseService.create(courseRecordDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(course);
     }
 
     @GetMapping
@@ -39,32 +35,19 @@ public class CourseController {
 
     @GetMapping("/{courseId}")
     public ResponseEntity<Object> getCourseById(@PathVariable UUID courseId) {
-        try {
-            var course = courseService.getById(courseId);
-            return ResponseEntity.ok(course);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        var course = courseService.getById(courseId);
+        return ResponseEntity.ok(course);
     }
 
     @PutMapping("/{courseId}")
-    public ResponseEntity<Object> updateCourseById(@PathVariable UUID courseId,
-                                                    @RequestBody @Valid CourseRecordDto courseRecordDto) {
-        try {
-            var courseUpdated = courseService.updateById(courseId, courseRecordDto);
-            return ResponseEntity.ok(courseUpdated);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<Object> updateCourseById(@PathVariable UUID courseId, @RequestBody @Valid CourseRecordDto courseRecordDto) {
+        var courseUpdated = courseService.updateById(courseId, courseRecordDto);
+        return ResponseEntity.ok(courseUpdated);
     }
 
     @DeleteMapping("/{courseId}")
     public ResponseEntity<Object> deleteCourseById(@PathVariable UUID courseId) {
-        try {
-            courseService.deleteById(courseId);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        courseService.deleteById(courseId);
+        return ResponseEntity.ok().build();
     }
 }

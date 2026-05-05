@@ -1,6 +1,7 @@
 package com.ead.course.controllers;
 
 import com.ead.course.dtos.ModuleRecordDto;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.services.CourseService;
@@ -85,7 +86,7 @@ class ModuleControllerTest {
     @Test
     void saveModule_courseNotFound_returns409() {
         when(courseService.getById(courseId))
-                .thenThrow(new IllegalArgumentException("Course not found with id: " + courseId));
+                .thenThrow(new NotFoundException("Course not found with id: " + courseId));
 
         ResponseEntity<Object> response = moduleController.saveModule(courseId, moduleRecordeDto);
 
@@ -152,7 +153,7 @@ class ModuleControllerTest {
     @Test
     void getModuleById_notFound_returns404() {
         when(moduleService.getById(moduleId))
-                .thenThrow(new IllegalArgumentException("Module not found with id: " + moduleId));
+                .thenThrow(new NotFoundException("Module not found with id: " + moduleId));
 
         ResponseEntity<Object> response = moduleController.getModuleById(moduleId);
 
@@ -176,7 +177,7 @@ class ModuleControllerTest {
 
     @Test
     void deleteModuleById_notFound_returns404() {
-        doThrow(new IllegalArgumentException("Module not found with id: " + moduleId))
+        doThrow(new NotFoundException("Module not found with id: " + moduleId))
                 .when(moduleService).deleteById(moduleId);
 
         ResponseEntity<Object> response = moduleController.deleteModuleById(moduleId);
@@ -208,7 +209,7 @@ class ModuleControllerTest {
     @Test
     void updateModuleById_notFound_returns404() {
         when(moduleService.updateById(moduleId, moduleRecordeDto))
-                .thenThrow(new IllegalArgumentException("Module not found with id: " + moduleId));
+                .thenThrow(new NotFoundException("Module not found with id: " + moduleId));
 
         ResponseEntity<Object> response = moduleController.updateModuleById(moduleId, moduleRecordeDto);
 

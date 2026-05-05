@@ -1,5 +1,6 @@
 package com.ead.course.services.impl;
 
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.LessonModel;
 import com.ead.course.repositories.LessonRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +62,7 @@ class LessonServiceImplTest {
     void deleteById_lessonNotFound_throwsException() {
         when(lessonRepository.findById(lessonId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> lessonService.deleteById(lessonId));
+        assertThrows(NotFoundException.class, () -> lessonService.deleteById(lessonId));
         verify(lessonRepository, times(1)).findById(lessonId);
         verify(lessonRepository, never()).delete(any());
     }

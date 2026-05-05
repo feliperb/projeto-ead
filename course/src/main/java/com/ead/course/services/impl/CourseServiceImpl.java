@@ -1,9 +1,9 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.CourseRecordDto;
+import com.ead.course.exceptions.ConflictException;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
-import com.ead.course.models.LessonModel;
-import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.CourseRepository;
 import com.ead.course.repositories.LessonRepository;
 import com.ead.course.repositories.ModuleRepository;
@@ -34,7 +34,7 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     @Override
     public CourseModel create(CourseRecordDto courseRecordDto) {
-        validateNameAvailability(courseRecordDto.name());
+        validateNameAvailability(courseRecordDto);
         var courseModel = mapToEntity(courseRecordDto);
         setAuditFields(courseModel);
         return courseRepository.save(courseModel);
@@ -49,31 +49,33 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public CourseModel getById(UUID courseId) {
         return courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found with id: " + courseId));
+                .orElseThrow(() -> new NotFoundException("Course not found with id: " + courseId));
     }
 
     @Transactional
     @Override
     public CourseModel updateById(UUID courseId, CourseRecordDto courseRecordDto) {
         var courseModel = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found with id: " + courseId));
+                .orElseThrow(() -> new NotFoundException("Course not found with id: " + courseId));
         return update(courseRecordDto, courseModel);
     }
 
     @Transactional
     @Override
     public void deleteById(UUID courseId) {
-        var courseModel = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found with id: " + courseId));
-        delete(courseModel);
+        CourseModel course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new NotFoundException("Course not found with id: " + courseId));
+        boolean hasModules = moduleRepository.existsByCourse_CourseId(courseId);
+        if (hasModules) {   throw new ConflictException("Cannot delete course because it has associated modules");  }
+        courseRepository.delete(course);
     }
 
 
     // PRIVATES METHODS
 
-    private void validateNameAvailability(String name) {
-        if (courseRepository.existsByName(name)) {
-            throw new IllegalArgumentException("Course name is already taken: " + name);
+    private void validateNameAvailability(CourseRecordDto courseRecordDto) {
+        if (courseRepository.existsByName(courseRecordDto.name())) {
+            throw new ConflictException("Course name is already taken: " + courseRecordDto.name());
         }
     }
 
@@ -93,20 +95,5 @@ public class CourseServiceImpl implements CourseService {
         BeanUtils.copyProperties(courseRecordDto, courseModel);
         courseModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         return courseRepository.save(courseModel);
-    }
-
-    @Transactional
-    protected void delete(CourseModel courseModel) {
-        if (courseModel == null) {  throw new IllegalArgumentException("courseModel não pode ser null");    }
-        List<ModuleModel> moduleModels = moduleRepository.findAllModulesIntoCourse(courseModel.getCourseId());
-        if (moduleModels != null && !moduleModels.isEmpty()) {
-            List<UUID> moduleIds = moduleModels.stream().map(ModuleModel::getModuleId).toList();
-            List<LessonModel> lessons = lessonRepository.findAllLessonsIntoModules(moduleIds);
-            if (lessons != null && !lessons.isEmpty()) {
-                lessonRepository.deleteAll(lessons);
-            }
-            moduleRepository.deleteAll(moduleModels);
-        }
-        courseRepository.delete(courseModel);
     }
 }

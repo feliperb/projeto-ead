@@ -1,6 +1,8 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.LessonRecordDto;
+import com.ead.course.exceptions.ConflictException;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.LessonRepository;
@@ -40,14 +42,14 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public LessonModel getById(UUID lessonId) {
         return lessonRepository.findByLessonId(lessonId)
-                .orElseThrow(() -> new IllegalArgumentException("Lesson not found with id: " + lessonId));
+                .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
     }
 
     @Transactional
     @Override
     public LessonModel updateById(UUID lessonId, LessonRecordDto lessonRecordeDto) {
         var lessonModel = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new IllegalArgumentException("Lesson not found with id: " + lessonId));
+                .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
         return update(lessonRecordeDto, lessonModel);
     }
 
@@ -55,7 +57,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public void deleteById(UUID lessonId) {
         var lessonModel = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new IllegalArgumentException("Lesson not found with id: " + lessonId));
+                .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
         delete(lessonModel);
     }
 
@@ -65,7 +67,7 @@ public class LessonServiceImpl implements LessonService {
 
     private void validateNameAvailability(String name) {
         if (lessonRepository.existsByTitle(name)) {
-            throw new IllegalArgumentException("Lesson title is already taken: " + name);
+            throw new ConflictException("Lesson title is already taken: " + name);
         }
     }
 
@@ -88,7 +90,7 @@ public class LessonServiceImpl implements LessonService {
 
     @Transactional
     protected void delete(LessonModel lessonModel) {
-        if (lessonModel == null) {  throw new IllegalArgumentException("lessonModel não pode ser null");    }
+        if (lessonModel == null) {  throw new NotFoundException("lessonModel não pode ser null");    }
         lessonRepository.delete(lessonModel);
     }
 }

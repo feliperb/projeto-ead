@@ -1,6 +1,7 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.ModuleRecordDto;
+import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
@@ -72,7 +73,7 @@ class ModuleServiceImplTest {
     void deleteById_moduleNotFound_throwsException() {
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> moduleService.deleteById(moduleId));
+        assertThrows(NotFoundException.class, () -> moduleService.deleteById(moduleId));
         verify(moduleRepository).findById(moduleId);
         verify(lessonRepository, never()).deleteAll(anyList());
         verify(moduleRepository, never()).delete(any());
@@ -153,21 +154,21 @@ class ModuleServiceImplTest {
     // Tests for getById
     @Test
     void getById_moduleExists_returnsModule() {
-        when(moduleRepository.findByModuleId(moduleId)).thenReturn(Optional.of(moduleModel));
+        when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
 
         ModuleModel result = moduleService.getById(moduleId);
 
         assertNotNull(result);
         assertEquals(moduleModel, result);
-        verify(moduleRepository).findByModuleId(moduleId);
+        verify(moduleRepository).findById(moduleId);
     }
 
     @Test
     void getById_moduleNotFound_throwsException() {
-        when(moduleRepository.findByModuleId(moduleId)).thenReturn(Optional.empty());
+        when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> moduleService.getById(moduleId));
-        verify(moduleRepository).findByModuleId(moduleId);
+        assertThrows(NotFoundException.class, () -> moduleService.getById(moduleId));
+        verify(moduleRepository).findById(moduleId);
     }
 
     // Tests for updateById
@@ -193,7 +194,7 @@ class ModuleServiceImplTest {
 
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> moduleService.updateById(moduleId, updateDto));
+        assertThrows(NotFoundException.class, () -> moduleService.updateById(moduleId, updateDto));
         verify(moduleRepository).findById(moduleId);
         verify(moduleRepository, never()).save(any());
     }
