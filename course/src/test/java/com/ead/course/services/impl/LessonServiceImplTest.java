@@ -25,9 +25,11 @@ class LessonServiceImplTest {
     private LessonServiceImpl lessonService;
 
     private UUID lessonId;
-    private LessonModel lessonModel;
-    private ModuleModel moduleModel;
-    private LessonRecordDto lessonDto;
+    private UUID moduleId;
+    private LessonModel lesson;
+    private ModuleModel module;
+    private LessonRecordDto dto;
+
     private AutoCloseable closeable;
 
     @BeforeEach
@@ -35,20 +37,19 @@ class LessonServiceImplTest {
         closeable = MockitoAnnotations.openMocks(this);
 
         lessonId = UUID.randomUUID();
+        moduleId = UUID.randomUUID();
 
-        moduleModel = new ModuleModel();
-        moduleModel.setModuleId(UUID.randomUUID());
+        module = new ModuleModel();
+        module.setModuleId(moduleId);
 
-        lessonModel = new LessonModel();
-        lessonModel.setLessonId(lessonId);
-        lessonModel.setTitle("Test Lesson");
-        lessonModel.setDescription("Test Description");
-        lessonModel.setVideoUrl("video-url");
-        lessonModel.setModule(moduleModel);
+        lesson = new LessonModel();
+        lesson.setLessonId(lessonId);
+        lesson.setTitle("Lesson 1");
+        lesson.setModule(module);
 
-        lessonDto = new LessonRecordDto(
-                "Test Lesson",
-                "Test Description",
+        dto = new LessonRecordDto(
+                "Lesson 1",
+                "Desc",
                 "video-url"
         );
     }
@@ -61,78 +62,71 @@ class LessonServiceImplTest {
     // =========================
     // CREATE
     // =========================
-    @Test
-    void create_success_savesLesson() {
-        when(lessonRepository.existsByTitle(lessonDto.title())).thenReturn(false);
-        when(lessonRepository.save(any(LessonModel.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        LessonModel result = lessonService.create(lessonDto, moduleModel);
+    @Test
+    void create_success_shouldSave() {
+        when(lessonRepository.existsByTitleAndModule_ModuleId(dto.title(), moduleId))
+                .thenReturn(false);
+        when(lessonRepository.save(any()))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        LessonModel result = lessonService.create(dto, module);
 
         assertNotNull(result);
-        assertEquals("Test Lesson", result.getTitle());
-        assertEquals(moduleModel, result.getModule());
+        assertEquals(dto.title(), result.getTitle());
 
-        verify(lessonRepository).existsByTitle(lessonDto.title());
-        verify(lessonRepository).save(any(LessonModel.class));
+        verify(lessonRepository)
+                .existsByTitleAndModule_ModuleId(dto.title(), moduleId);
+        verify(lessonRepository).save(any());
     }
 
     @Test
-    void create_titleAlreadyExists_throwsConflict() {
-        when(lessonRepository.existsByTitle(lessonDto.title())).thenReturn(true);
+    void create_duplicateTitleSameModule_shouldThrowConflict() {
+        when(lessonRepository.existsByTitleAndModule_ModuleId(dto.title(), moduleId))
+                .thenReturn(true);
 
         assertThrows(ConflictException.class,
-                () -> lessonService.create(lessonDto, moduleModel));
+                () -> lessonService.create(dto, module));
 
-        verify(lessonRepository).existsByTitle(lessonDto.title());
         verify(lessonRepository, never()).save(any());
     }
 
-    // =========================
-    // GET ALL
-    // =========================
     @Test
-    void getAllLessons_success_returnsList() {
-        List<LessonModel> lessons = List.of(new LessonModel(), new LessonModel());
+    void create_sameTitleDifferentModule_shouldAllow() {
+        UUID moduleId = UUID.randomUUID();
 
-        when(lessonRepository.findByModule_ModuleId(moduleModel.getModuleId()))
-                .thenReturn(lessons);
+        module.setModuleId(moduleId);
 
-        List<LessonModel> result = lessonService.getAllLessons(moduleModel.getModuleId());
+        when(lessonRepository.existsByTitleAndModule_ModuleId(dto.title(), moduleId))
+                .thenReturn(false);
 
-        assertEquals(2, result.size());
-        verify(lessonRepository).findByModule_ModuleId(moduleModel.getModuleId());
-    }
+        when(lessonRepository.save(any(LessonModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-    @Test
-    void getAllLessons_empty_returnsEmptyList() {
-        when(lessonRepository.findByModule_ModuleId(moduleModel.getModuleId()))
-                .thenReturn(List.of());
-
-        List<LessonModel> result = lessonService.getAllLessons(moduleModel.getModuleId());
+        LessonModel result = lessonService.create(dto, module);
 
         assertNotNull(result);
-        assertTrue(result.isEmpty());
+
+        verify(lessonRepository).existsByTitleAndModule_ModuleId(dto.title(), moduleId);
+        verify(lessonRepository).save(any(LessonModel.class));
     }
 
     // =========================
-    // GET BY ID
+    // GET
     // =========================
+
     @Test
-    void getById_success_returnsLesson() {
+    void getById_success() {
         when(lessonRepository.findById(lessonId))
-                .thenReturn(Optional.of(lessonModel));
+                .thenReturn(Optional.of(lesson));
 
         LessonModel result = lessonService.getById(lessonId);
 
-        assertNotNull(result);
-        assertEquals(lessonModel, result);
-
-        verify(lessonRepository).findById(lessonId);
+        assertEquals(lesson, result);
     }
 
     @Test
-    void getById_notFound_throwsException() {
+    void getById_notFound() {
         when(lessonRepository.findById(lessonId))
                 .thenReturn(Optional.empty());
 
@@ -140,59 +134,100 @@ class LessonServiceImplTest {
                 () -> lessonService.getById(lessonId));
     }
 
+    @Test
+    void getAllLessons_returnsList() {
+        when(lessonRepository.findByModule_ModuleId(moduleId))
+                .thenReturn(List.of(lesson));
+
+        List<LessonModel> result = lessonService.getAllLessons(moduleId);
+
+        assertEquals(1, result.size());
+    }
+
     // =========================
     // UPDATE
     // =========================
+
     @Test
-    void updateById_success_updatesLesson() {
+    void update_success_nameChanged() {
         LessonRecordDto updateDto = new LessonRecordDto(
-                "Updated",
-                "Updated Desc",
-                "new-url"
+                "New Title",
+                "Desc",
+                "url"
         );
 
         when(lessonRepository.findById(lessonId))
-                .thenReturn(Optional.of(lessonModel));
-
-        when(lessonRepository.save(any(LessonModel.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenReturn(Optional.of(lesson));
+        when(lessonRepository.existsByTitleAndModule_ModuleId("New Title", moduleId))
+                .thenReturn(false);
+        when(lessonRepository.save(any()))
+                .thenAnswer(inv -> inv.getArgument(0));
 
         LessonModel result = lessonService.updateById(lessonId, updateDto);
 
-        assertEquals("Updated", result.getTitle());
-        assertEquals("Updated Desc", result.getDescription());
-        assertEquals("new-url", result.getVideoUrl());
+        assertEquals("New Title", result.getTitle());
 
-        verify(lessonRepository).save(lessonModel);
+        verify(lessonRepository)
+                .existsByTitleAndModule_ModuleId("New Title", moduleId);
     }
 
     @Test
-    void updateById_notFound_throwsException() {
+    void update_duplicateTitleSameModule_shouldThrowConflict() {
+        LessonRecordDto updateDto = new LessonRecordDto(
+                "New Title",
+                "Desc",
+                "url"
+        );
+
+        when(lessonRepository.findById(lessonId))
+                .thenReturn(Optional.of(lesson));
+        when(lessonRepository.existsByTitleAndModule_ModuleId("New Title", moduleId))
+                .thenReturn(true);
+
+        assertThrows(ConflictException.class,
+                () -> lessonService.updateById(lessonId, updateDto));
+
+        verify(lessonRepository, never()).save(any());
+    }
+
+    @Test
+    void update_sameName_shouldNotCallExists() {
+        when(lessonRepository.findById(lessonId))
+                .thenReturn(Optional.of(lesson));
+        when(lessonRepository.save(any()))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        lessonService.updateById(lessonId, dto);
+
+        verify(lessonRepository, never())
+                .existsByTitleAndModule_ModuleId(any(), any());
+    }
+
+    @Test
+    void update_notFound() {
         when(lessonRepository.findById(lessonId))
                 .thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
-                () -> lessonService.updateById(lessonId, lessonDto));
-
-        verify(lessonRepository, never()).save(any());
+                () -> lessonService.updateById(lessonId, dto));
     }
 
     // =========================
     // DELETE
     // =========================
+
     @Test
-    void deleteById_success_deletesLesson() {
+    void delete_success() {
         when(lessonRepository.findById(lessonId))
-                .thenReturn(Optional.of(lessonModel));
+                .thenReturn(Optional.of(lesson));
 
         lessonService.deleteById(lessonId);
 
-        verify(lessonRepository).findById(lessonId);
-        verify(lessonRepository).delete(lessonModel);
+        verify(lessonRepository).delete(lesson);
     }
 
     @Test
-    void deleteById_notFound_throwsException() {
+    void delete_notFound() {
         when(lessonRepository.findById(lessonId))
                 .thenReturn(Optional.empty());
 

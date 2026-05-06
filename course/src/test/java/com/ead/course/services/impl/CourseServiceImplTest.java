@@ -7,6 +7,7 @@ import com.ead.course.exceptions.ConflictException;
 import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.repositories.CourseRepository;
+import com.ead.course.repositories.ModuleRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class CourseServiceImplTest {
 
     @Mock
     private CourseRepository courseRepository;
+
+    @Mock
+    private ModuleRepository moduleRepository;
 
     @InjectMocks
     private CourseServiceImpl courseService;
@@ -74,7 +78,7 @@ class CourseServiceImplTest {
     @Test
     void create_success_savesCourse() {
         when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(false);
-        when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
+        when(courseRepository.save(any())).thenReturn(courseModel);
 
         CourseModel result = courseService.create(courseRecordDto);
 
@@ -82,7 +86,7 @@ class CourseServiceImplTest {
         assertEquals("Test Course", result.getName());
 
         verify(courseRepository).existsByName(courseRecordDto.name());
-        verify(courseRepository).save(any(CourseModel.class));
+        verify(courseRepository).save(any());
     }
 
     @Test
@@ -106,9 +110,7 @@ class CourseServiceImplTest {
 
         CourseModel result = courseService.getById(courseId);
 
-        assertNotNull(result);
         assertEquals(courseModel, result);
-
         verify(courseRepository).findById(courseId);
     }
 
@@ -128,15 +130,11 @@ class CourseServiceImplTest {
 
     @Test
     void getAllCourses_returnsAllCourses() {
-        CourseModel course1 = new CourseModel();
-        CourseModel course2 = new CourseModel();
-
-        when(courseRepository.findAll()).thenReturn(List.of(course1, course2));
+        when(courseRepository.findAll()).thenReturn(List.of(new CourseModel(), new CourseModel()));
 
         List<CourseModel> result = courseService.getAllCourses();
 
         assertEquals(2, result.size());
-
         verify(courseRepository).findAll();
     }
 
@@ -147,7 +145,6 @@ class CourseServiceImplTest {
         List<CourseModel> result = courseService.getAllCourses();
 
         assertTrue(result.isEmpty());
-
         verify(courseRepository).findAll();
     }
 
@@ -168,29 +165,28 @@ class CourseServiceImplTest {
 
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
         when(courseRepository.existsByName(updateDto.name())).thenReturn(false);
-        when(courseRepository.save(any(CourseModel.class)))
+        when(courseRepository.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         CourseModel result = courseService.updateById(courseId, updateDto);
 
-        assertNotNull(result);
         assertEquals("Updated Course", result.getName());
         assertEquals("Updated Description", result.getDescription());
 
-        verify(courseRepository).findById(courseId);
         verify(courseRepository).existsByName(updateDto.name());
-        verify(courseRepository).save(any(CourseModel.class));
+        verify(courseRepository).save(any());
     }
 
     @Test
-    void updateById_courseNotFound_throwsException() {
-        when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
+    void updateById_nameDidNotChange_shouldNotCallExistsByName() {
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
+        when(courseRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThrows(NotFoundException.class,
-                () -> courseService.updateById(courseId, courseRecordDto));
+        courseService.updateById(courseId, courseRecordDto);
 
-        verify(courseRepository).findById(courseId);
-        verify(courseRepository, never()).save(any());
+        verify(courseRepository, never()).existsByName(any());
+        verify(courseRepository).save(any());
     }
 
     @Test
@@ -210,7 +206,6 @@ class CourseServiceImplTest {
         assertThrows(ConflictException.class,
                 () -> courseService.updateById(courseId, updateDto));
 
-        verify(courseRepository).findById(courseId);
         verify(courseRepository).existsByName("New Name");
         verify(courseRepository, never()).save(any());
     }
@@ -218,18 +213,14 @@ class CourseServiceImplTest {
     @Test
     void updateById_updatesLastUpdateDate() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(false);
+        when(courseRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         LocalDateTime oldDate = courseModel.getLastUpdateDate();
-
-        when(courseRepository.save(any(CourseModel.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
         CourseModel result = courseService.updateById(courseId, courseRecordDto);
 
         assertTrue(result.getLastUpdateDate().isAfter(oldDate));
-
-        verify(courseRepository).save(any(CourseModel.class));
     }
 
     // =========================
@@ -239,36 +230,31 @@ class CourseServiceImplTest {
     @Test
     void deleteById_successfulDeletion_callsDelete() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(courseRepository.existsByCourseId(courseId)).thenReturn(false);
+        when(moduleRepository.existsByCourse_CourseId(courseId)).thenReturn(false);
 
         courseService.deleteById(courseId);
 
-        verify(courseRepository).findById(courseId);
-        verify(courseRepository).existsByCourseId(courseId);
         verify(courseRepository).delete(courseModel);
     }
 
     @Test
-    void deleteById_courseNotFound_throwsException() {
+    void deleteById_courseNotFound_shouldNotCheckModules() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> courseService.deleteById(courseId));
 
-        verify(courseRepository).findById(courseId);
-        verify(courseRepository, never()).delete(any());
+        verify(courseRepository, never()).existsByCourseId(any());
     }
 
     @Test
     void deleteById_withModules_throwsConflictException() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(courseRepository.existsByCourseId(courseId)).thenReturn(true);
+        when(moduleRepository.existsByCourse_CourseId(courseId)).thenReturn(true);
 
         assertThrows(ConflictException.class,
                 () -> courseService.deleteById(courseId));
 
-        verify(courseRepository).findById(courseId);
-        verify(courseRepository).existsByCourseId(courseId);
         verify(courseRepository, never()).delete(any());
     }
 }

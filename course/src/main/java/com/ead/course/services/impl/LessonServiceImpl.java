@@ -27,7 +27,7 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     @Override
     public LessonModel create(LessonRecordDto dto, ModuleModel module) {
-        validateLessonNameAvailability(dto.title());
+        validateLessonNameAvailability(dto.title(), module.getModuleId());
         LessonModel lesson = buildEntity(dto, module);
         return lessonRepository.save(lesson);
     }
@@ -67,16 +67,15 @@ public class LessonServiceImpl implements LessonService {
                 .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
     }
 
-    private void validateLessonNameAvailability(String title) {
-        if (lessonRepository.existsByTitle(title)) {
+    private void validateLessonNameAvailability(String title, UUID moduleId) {
+        if (lessonRepository.existsByTitleAndModule_ModuleId(title, moduleId)) {
             throw new ConflictException("Lesson title is already taken: " + title);
         }
     }
 
     private void validateNameChange(String newTitle, LessonModel lesson) {
         boolean nameChanged = !lesson.getTitle().equals(newTitle);
-
-        if (nameChanged && lessonRepository.existsByTitle(newTitle)) {
+        if (nameChanged && lessonRepository.existsByTitleAndModule_ModuleId(newTitle, lesson.getModule().getModuleId())) {
             throw new ConflictException("Lesson title is already taken: " + newTitle);
         }
     }

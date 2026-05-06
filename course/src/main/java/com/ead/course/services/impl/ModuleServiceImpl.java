@@ -30,7 +30,7 @@ public class ModuleServiceImpl implements ModuleService {
     @Transactional
     @Override
     public ModuleModel create(ModuleRecordDto dto, CourseModel course) {
-        validateModuleNameAvailability(dto.title());
+        validateModuleNameAvailability(dto.title(), course.getCourseId());
         ModuleModel module = buildEntity(dto, course);
         return moduleRepository.save(module);
     }
@@ -71,15 +71,14 @@ public class ModuleServiceImpl implements ModuleService {
                 .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
     }
 
-    private void validateModuleNameAvailability(String title) {
-        if (moduleRepository.existsByTitle(title)) {
+    private void validateModuleNameAvailability(String title, UUID courseId) {
+        if (moduleRepository.existsByTitleAndCourse_CourseId(title, courseId)) {
             throw new ConflictException("Module title is already taken: " + title);
         }
     }
 
     private void validateNameChange(String newTitle, ModuleModel module) {
-        boolean nameChanged = !module.getTitle().equals(newTitle);
-        if (nameChanged && moduleRepository.existsByTitle(newTitle)) {
+        if (moduleRepository.existsByTitleAndCourse_CourseIdAndModuleIdNot(newTitle, module.getCourse().getCourseId(), module.getModuleId())) {
             throw new ConflictException("Module title is already taken: " + newTitle);
         }
     }

@@ -5,6 +5,7 @@ import com.ead.course.exceptions.ConflictException;
 import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
 import com.ead.course.repositories.CourseRepository;
+import com.ead.course.repositories.ModuleRepository;
 import com.ead.course.services.CourseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,9 +19,11 @@ import java.util.UUID;
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
+    private final ModuleRepository moduleRepository;
 
-    public CourseServiceImpl(CourseRepository courseRepository) {
+    public CourseServiceImpl(CourseRepository courseRepository, ModuleRepository moduleRepository) {
         this.courseRepository = courseRepository;
+        this.moduleRepository = moduleRepository;
     }
 
     @Transactional
@@ -82,7 +85,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     private void validateCourseDeletion(UUID courseId) {
-        boolean hasModules = courseRepository.existsByCourseId(courseId);
+        boolean hasModules = moduleRepository.existsByCourse_CourseId(courseId);
         if (hasModules) {
             throw new ConflictException("Course cannot be deleted because it has modules");
         }

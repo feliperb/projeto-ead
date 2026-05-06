@@ -15,4 +15,6 @@ public interface LessonRepository extends JpaRepository<LessonModel, UUID> {
     boolean existsByTitle(String title);
 
     boolean existsByModule_ModuleId(UUID moduleId);
+
+    boolean existsByTitleAndModule_ModuleId(String title, UUID moduleId);
 }

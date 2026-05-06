@@ -20,4 +20,8 @@ public interface ModuleRepository extends JpaRepository<ModuleModel, UUID> {
     boolean existsByTitle(String title);
 
     boolean existsByCourse_CourseId(UUID courseId);
+
+    boolean existsByTitleAndCourse_CourseId(String title, UUID courseId);
+
+    boolean existsByTitleAndCourse_CourseIdAndModuleIdNot(String title, UUID courseId, UUID moduleId);
 }
