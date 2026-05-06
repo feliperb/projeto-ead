@@ -8,88 +8,102 @@ import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.LessonRepository;
 import com.ead.course.repositories.ModuleRepository;
 import com.ead.course.services.ModuleService;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class ModuleServiceImpl implements ModuleService {
 
-    final ModuleRepository moduleRepository;
-    final LessonRepository lessonRepository;
+    private final ModuleRepository moduleRepository;
+    private final LessonRepository lessonRepository;
 
     public ModuleServiceImpl(ModuleRepository moduleRepository, LessonRepository lessonRepository) {
         this.moduleRepository = moduleRepository;
         this.lessonRepository = lessonRepository;
     }
 
+    @Transactional
     @Override
-    public ModuleModel create(ModuleRecordDto moduleRecordDto, CourseModel courseModel) {
-        validateNameAvailability(moduleRecordDto.title());
-        var moduleModel = mapToEntity(moduleRecordDto, courseModel);
-        setAuditFields(moduleModel);
-        return moduleRepository.save(moduleModel);
+    public ModuleModel create(ModuleRecordDto dto, CourseModel course) {
+        validateModuleNameAvailability(dto.title());
+        ModuleModel module = buildEntity(dto, course);
+        return moduleRepository.save(module);
     }
 
     @Override
     public List<ModuleModel> getAllModules(UUID courseId) {
-        List<ModuleModel> modules = moduleRepository.findAllModulesIntoCourse(courseId);
-        return modules != null ? modules : List.of();
+        return moduleRepository.findAllModulesIntoCourse(courseId); //paginacao por fazer...
     }
 
     @Override
     public ModuleModel getById(UUID moduleId) {
-        return moduleRepository.findById(moduleId)
-               .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
+        return findModuleOrThrow(moduleId);
     }
 
     @Transactional
     @Override
-    public ModuleModel updateById(UUID moduleId, ModuleRecordDto moduleRecordeDto) {
-        var moduleModel = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
-        return update(moduleRecordeDto, moduleModel);
+    public ModuleModel updateById(UUID moduleId, ModuleRecordDto dto) {
+        ModuleModel module = findModuleOrThrow(moduleId);
+        validateNameChange(dto.title(), module);
+        applyUpdates(module, dto);
+        return moduleRepository.save(module);
     }
 
     @Transactional
     @Override
     public void deleteById(UUID moduleId) {
-        ModuleModel module = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
-        boolean hasLessons = lessonRepository.existsByModule_ModuleId(moduleId);
-        if (hasLessons) {   throw new ConflictException("Cannot delete module because it has associated lessons");  }
+        ModuleModel module = findModuleOrThrow(moduleId);
+        validateNoDependencies(moduleId);
         moduleRepository.delete(module);
     }
 
-
-
+    // =========================
     // PRIVATE METHODS
+    // =========================
 
-    private void validateNameAvailability(String name) {
-        if (moduleRepository.existsByTitle(name)) {
-            throw new ConflictException("Module title is already taken: " + name);
+    private ModuleModel findModuleOrThrow(UUID moduleId) {
+        return moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
+    }
+
+    private void validateModuleNameAvailability(String title) {
+        if (moduleRepository.existsByTitle(title)) {
+            throw new ConflictException("Module title is already taken: " + title);
         }
     }
 
-    private ModuleModel mapToEntity(ModuleRecordDto moduleRecordDto, CourseModel courseModel) {
-        var moduleModel = new ModuleModel();
-        BeanUtils.copyProperties(moduleRecordDto, moduleModel);
-        moduleModel.setCourse(courseModel);
-        return moduleModel;
+    private void validateNameChange(String newTitle, ModuleModel module) {
+        boolean nameChanged = !module.getTitle().equals(newTitle);
+        if (nameChanged && moduleRepository.existsByTitle(newTitle)) {
+            throw new ConflictException("Module title is already taken: " + newTitle);
+        }
     }
 
-    private void setAuditFields(ModuleModel moduleModel) {
-        moduleModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
+    private void validateNoDependencies(UUID moduleId) {
+        boolean hasLessons = lessonRepository.existsByModule_ModuleId(moduleId);
+        if (hasLessons) {
+            throw new ConflictException("Cannot delete module because it has associated lessons");
+        }
     }
 
-    private ModuleModel update(ModuleRecordDto courseRecordDto, ModuleModel moduleModel) {
-        BeanUtils.copyProperties(courseRecordDto, moduleModel);
-        //moduleModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
-        return moduleRepository.save(moduleModel);
+    private ModuleModel buildEntity(ModuleRecordDto dto, CourseModel course) {
+        ModuleModel module = new ModuleModel();
+
+        module.setTitle(dto.title());
+        module.setDescription(dto.description());
+        module.setCourse(course);
+        module.setCreationDate(LocalDateTime.now(ZoneOffset.UTC));
+
+        return module;
+    }
+
+    private void applyUpdates(ModuleModel module, ModuleRecordDto dto) {
+        module.setTitle(dto.title());
+        module.setDescription(dto.description());
     }
 }

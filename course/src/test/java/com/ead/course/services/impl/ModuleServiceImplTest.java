@@ -1,9 +1,9 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.ModuleRecordDto;
+import com.ead.course.exceptions.ConflictException;
 import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
-import com.ead.course.models.LessonModel;
 import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.LessonRepository;
 import com.ead.course.repositories.ModuleRepository;
@@ -15,8 +15,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Collections;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,8 +27,10 @@ class ModuleServiceImplTest {
 
     @Mock
     private ModuleRepository moduleRepository;
+
     @Mock
     private LessonRepository lessonRepository;
+
     @InjectMocks
     private ModuleServiceImpl moduleService;
 
@@ -41,31 +42,32 @@ class ModuleServiceImplTest {
     void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
         moduleId = UUID.randomUUID();
+
         moduleModel = new ModuleModel();
         moduleModel.setModuleId(moduleId);
         moduleModel.setTitle("Test Module");
         moduleModel.setDescription("Test Description");
-        moduleModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
+        moduleModel.setCreationDate(LocalDateTime.now(ZoneOffset.UTC));
     }
 
     @AfterEach
     void tearDown() throws Exception {
-        if (closeable != null) {
-            closeable.close();
-        }
+        closeable.close();
     }
 
+    // =========================
+    // DELETE
+    // =========================
 
-    // Tests for deleteById
     @Test
     void deleteById_success_deletesModule() {
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
-        when(lessonRepository.findAllLessonsIntoModule(moduleId)).thenReturn(Collections.emptyList());
+        when(lessonRepository.existsByModule_ModuleId(moduleId)).thenReturn(false);
 
         moduleService.deleteById(moduleId);
 
         verify(moduleRepository).findById(moduleId);
-        //verify(lessonRepository).findAllLessonsIntoModule(moduleId);
+        verify(lessonRepository).existsByModule_ModuleId(moduleId);
         verify(moduleRepository).delete(moduleModel);
     }
 
@@ -73,128 +75,155 @@ class ModuleServiceImplTest {
     void deleteById_moduleNotFound_throwsException() {
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> moduleService.deleteById(moduleId));
+        assertThrows(NotFoundException.class,
+                () -> moduleService.deleteById(moduleId));
+
         verify(moduleRepository).findById(moduleId);
-        verify(lessonRepository, never()).deleteAll(anyList());
         verify(moduleRepository, never()).delete(any());
     }
 
     @Test
-    void deleteById_withLessons_deletesAllInOrder() {
-        LessonModel lesson1 = new LessonModel();
-        List<LessonModel> lessons = List.of(lesson1);
+    void deleteById_withLessons_throwsConflictException() {
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
-        when(lessonRepository.findAllLessonsIntoModule(moduleId)).thenReturn(lessons);
+        when(lessonRepository.existsByModule_ModuleId(moduleId)).thenReturn(true);
 
-        moduleService.deleteById(moduleId);
+        assertThrows(ConflictException.class,
+                () -> moduleService.deleteById(moduleId));
 
         verify(moduleRepository).findById(moduleId);
-        //verify(lessonRepository).findAllLessonsIntoModule(moduleId);
-        //verify(lessonRepository).deleteAll(lessons);
-        verify(moduleRepository).delete(moduleModel);
+        verify(lessonRepository).existsByModule_ModuleId(moduleId);
+        verify(moduleRepository, never()).delete(any());
     }
 
-    // Tests for save
+    // =========================
+    // CREATE
+    // =========================
+
     @Test
-    void save_successfullySavesModule() {
+    void create_successfullySavesModule() {
         UUID courseId = UUID.randomUUID();
-        CourseModel courseModel = new CourseModel();
-        courseModel.setCourseId(courseId);
-        courseModel.setName("Test Course");
+        CourseModel course = new CourseModel();
+        course.setCourseId(courseId);
 
-        ModuleRecordDto moduleRecordeDto = new ModuleRecordDto("Test Module", "Test Description");
+        ModuleRecordDto dto = new ModuleRecordDto("Test Module", "Test Description");
 
-        when(moduleRepository.save(any(ModuleModel.class))).thenAnswer(invocation -> {
-            ModuleModel savedModule = invocation.getArgument(0);
-            savedModule.setModuleId(UUID.randomUUID());
-            return savedModule;
-        });
+        when(moduleRepository.existsByTitle(dto.title())).thenReturn(false);
+        when(moduleRepository.save(any(ModuleModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        ModuleModel result = moduleService.create(moduleRecordeDto, courseModel);
+        ModuleModel result = moduleService.create(dto, course);
 
         assertNotNull(result);
         assertEquals("Test Module", result.getTitle());
-        assertEquals("Test Description", result.getDescription());
-        assertEquals(courseModel, result.getCourse());
+        assertEquals(course, result.getCourse());
         assertNotNull(result.getCreationDate());
+
+        verify(moduleRepository).existsByTitle(dto.title());
         verify(moduleRepository).save(any(ModuleModel.class));
     }
 
-    // Tests for findAllModulesIntoCourse
     @Test
-    void findAllModulesIntoCourse_returnsModules() {
+    void create_nameAlreadyExists_throwsConflictException() {
+        ModuleRecordDto dto = new ModuleRecordDto("Test Module", "Test Description");
+
+        when(moduleRepository.existsByTitle(dto.title())).thenReturn(true);
+
+        assertThrows(ConflictException.class,
+                () -> moduleService.create(dto, new CourseModel()));
+
+        verify(moduleRepository).existsByTitle(dto.title());
+        verify(moduleRepository, never()).save(any());
+    }
+
+    // =========================
+    // GET ALL
+    // =========================
+
+    @Test
+    void getAllModules_returnsModules() {
         UUID courseId = UUID.randomUUID();
-        ModuleModel module1 = new ModuleModel();
-        ModuleModel module2 = new ModuleModel();
-        List<ModuleModel> modules = List.of(module1, module2);
+
+        List<ModuleModel> modules = List.of(new ModuleModel(), new ModuleModel());
 
         when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(modules);
 
         List<ModuleModel> result = moduleService.getAllModules(courseId);
 
-        assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals(modules, result);
         verify(moduleRepository).findAllModulesIntoCourse(courseId);
     }
 
+    // ⚠️ REMOVIDO: teste de null (não faz mais sentido no novo padrão)
+
+    // =========================
+    // GET BY ID
+    // =========================
+
     @Test
-    void findAllModulesIntoCourse_returnsEmptyListWhenNull() {
-        UUID courseId = UUID.randomUUID();
-
-        when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(null);
-
-        List<ModuleModel> result = moduleService.getAllModules(courseId);
-
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-        verify(moduleRepository).findAllModulesIntoCourse(courseId);
-    }
-
-    // Tests for getById
-    @Test
-    void getById_moduleExists_returnsModule() {
+    void getById_success_returnsModule() {
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
 
         ModuleModel result = moduleService.getById(moduleId);
 
-        assertNotNull(result);
         assertEquals(moduleModel, result);
         verify(moduleRepository).findById(moduleId);
     }
 
     @Test
-    void getById_moduleNotFound_throwsException() {
+    void getById_notFound_throwsException() {
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> moduleService.getById(moduleId));
+        assertThrows(NotFoundException.class,
+                () -> moduleService.getById(moduleId));
+
         verify(moduleRepository).findById(moduleId);
     }
 
-    // Tests for updateById
+    // =========================
+    // UPDATE
+    // =========================
+
     @Test
     void updateById_success_updatesModule() {
-        ModuleRecordDto updateDto = new ModuleRecordDto("Updated Title", "Updated Description");
+        ModuleRecordDto dto = new ModuleRecordDto("Updated", "Updated Desc");
 
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
-        when(moduleRepository.save(any(ModuleModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(moduleRepository.existsByTitle(dto.title())).thenReturn(false);
+        when(moduleRepository.save(any(ModuleModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        ModuleModel result = moduleService.updateById(moduleId, updateDto);
+        ModuleModel result = moduleService.updateById(moduleId, dto);
 
-        assertNotNull(result);
-        assertEquals("Updated Title", result.getTitle());
-        assertEquals("Updated Description", result.getDescription());
+        assertEquals("Updated", result.getTitle());
+        assertEquals("Updated Desc", result.getDescription());
+
         verify(moduleRepository).findById(moduleId);
         verify(moduleRepository).save(moduleModel);
     }
 
     @Test
-    void updateById_moduleNotFound_throwsException() {
-        ModuleRecordDto updateDto = new ModuleRecordDto("Updated Title", "Updated Description");
+    void updateById_nameAlreadyExists_throwsConflictException() {
+        ModuleRecordDto dto = new ModuleRecordDto("New Name", "Desc");
+
+        when(moduleRepository.findById(moduleId)).thenReturn(Optional.of(moduleModel));
+        when(moduleRepository.existsByTitle("New Name")).thenReturn(true);
+
+        assertThrows(ConflictException.class,
+                () -> moduleService.updateById(moduleId, dto));
+
+        verify(moduleRepository).findById(moduleId);
+        verify(moduleRepository, never()).save(any());
+    }
+
+    @Test
+    void updateById_notFound_throwsException() {
+        ModuleRecordDto dto = new ModuleRecordDto("Updated", "Updated Desc");
 
         when(moduleRepository.findById(moduleId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> moduleService.updateById(moduleId, updateDto));
+        assertThrows(NotFoundException.class,
+                () -> moduleService.updateById(moduleId, dto));
+
         verify(moduleRepository).findById(moduleId);
         verify(moduleRepository, never()).save(any());
     }

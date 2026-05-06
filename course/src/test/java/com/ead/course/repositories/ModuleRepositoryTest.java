@@ -1,55 +1,89 @@
 package com.ead.course.repositories;
 
+import com.ead.course.enums.CourseLevel;
+import com.ead.course.enums.CourseStatus;
+import com.ead.course.models.CourseModel;
 import com.ead.course.models.ModuleModel;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+@DataJpaTest
 class ModuleRepositoryTest {
 
-    @Mock
-    ModuleRepository moduleRepository;
+    @Autowired
+    private ModuleRepository moduleRepository;
 
-    private AutoCloseable closeable;
+    @Autowired
+    private CourseRepository courseRepository;
 
-    @BeforeEach
-    void setUp() {
-        closeable = MockitoAnnotations.openMocks(this);
+    private CourseModel createCourse() {
+        CourseModel course = new CourseModel();
+        course.setName("Curso Teste");
+        course.setDescription("Desc");
+        course.setImageUrl("http://img");
+        course.setCourseLevel(CourseLevel.BEGINNER);
+        course.setCourseStatus(CourseStatus.IN_PROGRESS);
+        course.setCreationDate(LocalDateTime.now());
+        course.setLastUpdateDate(LocalDateTime.now());
+        course.setUserInstructor(UUID.randomUUID());
+
+        return courseRepository.save(course);
     }
 
-    @AfterEach
-    void tearDown() throws Exception {
-        if (closeable != null) {
-            closeable.close();
-        }
+    private void createModule(CourseModel course, String title) {
+        ModuleModel module = new ModuleModel();
+        module.setTitle(title);
+        module.setDescription("Desc module");
+        module.setCreationDate(LocalDateTime.now());
+        module.setCourse(course);
+
+        moduleRepository.save(module);
     }
 
     @Test
-    void findAllModulesIntoCourse_returnsModules() {
-        UUID courseId = UUID.randomUUID();
-        ModuleModel module = mock(ModuleModel.class);
-        when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(java.util.List.of(module));
-        var result = moduleRepository.findAllModulesIntoCourse(courseId);
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(module, result.getFirst());
+    void existsByTitle_success() {
+        CourseModel course = createCourse();
+        createModule(course, "Modulo 1");
+
+        boolean exists = moduleRepository.existsByTitle("Modulo 1");
+
+        assertTrue(exists);
     }
 
     @Test
-    void findAllModulesIntoCourse_returnsEmptyList() {
-        UUID courseId = UUID.randomUUID();
-        when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(java.util.Collections.emptyList());
-        var result = moduleRepository.findAllModulesIntoCourse(courseId);
+    void existsByCourseId_success() {
+        CourseModel course = createCourse();
+        createModule(course, "Modulo 1");
+
+        boolean exists = moduleRepository.existsByCourse_CourseId(course.getCourseId());
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void findAllModulesIntoCourse_success() {
+        CourseModel course = createCourse();
+        createModule(course, "Modulo 1");
+        createModule(course, "Modulo 2");
+
+        var result = moduleRepository.findAllModulesIntoCourse(course.getCourseId());
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void findAllModulesIntoCourse_empty() {
+        UUID randomId = UUID.randomUUID();
+
+        var result = moduleRepository.findAllModulesIntoCourse(randomId);
+
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
 }
-
