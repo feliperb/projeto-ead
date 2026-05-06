@@ -1,65 +1,136 @@
 package com.ead.course.repositories;
 
+import com.ead.course.enums.CourseLevel;
+import com.ead.course.enums.CourseStatus;
+import com.ead.course.models.CourseModel;
 import com.ead.course.models.LessonModel;
+import com.ead.course.models.ModuleModel;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
-import java.util.Collections;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@DataJpaTest
 class LessonRepositoryTest {
 
-    @Mock
+    @Autowired
     private LessonRepository lessonRepository;
 
+    @Autowired
+    private ModuleRepository moduleRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
+
+    private CourseModel createCourse() {
+        CourseModel course = new CourseModel();
+        course.setName("Curso Teste");
+        course.setDescription("Desc");
+        course.setImageUrl("http://img");
+        course.setCourseLevel(CourseLevel.BEGINNER); // ajuste
+        course.setCourseStatus(CourseStatus.IN_PROGRESS); // ajuste
+        course.setCreationDate(LocalDateTime.now());
+        course.setLastUpdateDate(LocalDateTime.now());
+        course.setUserInstructor(UUID.randomUUID());
+
+        return courseRepository.save(course);
+    }
+
+    private ModuleModel createModule(CourseModel course, String title) {
+        ModuleModel module = new ModuleModel();
+        module.setTitle(title);
+        module.setDescription("Desc module");
+        module.setCreationDate(LocalDateTime.now());
+        module.setCourse(course);
+
+        return moduleRepository.save(module);
+    }
+
+    private void createLesson(ModuleModel module, String title) {
+        LessonModel lesson = new LessonModel();
+        lesson.setTitle(title);
+        lesson.setDescription("Desc lesson");
+        lesson.setCreationDate(LocalDateTime.now());
+        lesson.setVideoUrl("http://video.com/teste"); // 👈 FALTAVA ISSO
+        lesson.setModule(module);
+
+        lessonRepository.save(lesson);
+    }
+
     @Test
-    void findAllLessonsIntoModule_returnsLessons() {
-        UUID moduleId = UUID.randomUUID();
-        LessonModel lesson = mock(LessonModel.class);
-        when(lessonRepository.findAllLessonsIntoModule(moduleId)).thenReturn(List.of(lesson));
+    void findByModule_ModuleId_success() {
+        CourseModel course = createCourse();
+        ModuleModel module = createModule(course, "Module Test");
 
-        List<LessonModel> result = lessonRepository.findAllLessonsIntoModule(moduleId);
+        createLesson(module, "Lesson 1");
 
-        assertNotNull(result);
+        List<LessonModel> result =
+                lessonRepository.findByModule_ModuleId(module.getModuleId());
+
+        assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        assertEquals(lesson, result.getFirst());
+        assertEquals("Lesson 1", result.getFirst().getTitle());
     }
 
     @Test
-    void findAllLessonsIntoModules_returnsLessons() {
-        UUID moduleId1 = UUID.randomUUID();
-        UUID moduleId2 = UUID.randomUUID();
-        LessonModel lesson1 = mock(LessonModel.class);
-        LessonModel lesson2 = mock(LessonModel.class);
-        List<UUID> moduleIds = List.of(moduleId1, moduleId2);
-        List<LessonModel> lessons = List.of(lesson1, lesson2);
-        when(lessonRepository.findAllLessonsIntoModules(moduleIds)).thenReturn(lessons);
+    @DisplayName("findByModule_ModuleIdIn should return lessons from multiple modules")
+    void findByModule_ModuleIdIn_success() {
+        CourseModel course = createCourse();
 
-        List<LessonModel> result = lessonRepository.findAllLessonsIntoModules(moduleIds);
+        ModuleModel module1 = createModule(course, "Module 1");
+        ModuleModel module2 = createModule(course, "Module 2");
 
-        assertNotNull(result);
+        createLesson(module1, "Lesson 1");
+        createLesson(module2, "Lesson 2");
+
+        List<LessonModel> result =
+                lessonRepository.findByModule_ModuleIdIn(
+                        List.of(module1.getModuleId(), module2.getModuleId())
+                );
+
         assertEquals(2, result.size());
-        assertTrue(result.contains(lesson1));
-        assertTrue(result.contains(lesson2));
     }
 
     @Test
-    void findAllLessonsIntoModule_returnsEmptyList() {
-        UUID moduleId = UUID.randomUUID();
-        when(lessonRepository.findAllLessonsIntoModule(moduleId)).thenReturn(Collections.emptyList());
+    @DisplayName("findByModule_ModuleId should return empty list when no lessons")
+    void findByModule_ModuleId_empty() {
+        UUID randomId = UUID.randomUUID();
 
-        List<LessonModel> result = lessonRepository.findAllLessonsIntoModule(moduleId);
+        List<LessonModel> result =
+                lessonRepository.findByModule_ModuleId(randomId);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
-}
 
+    @Test
+    void existsByTitle_success() {
+        CourseModel course = createCourse();
+        ModuleModel module = createModule(course, "Module Test");
+
+        createLesson(module, "Lesson 1");
+
+        boolean exists = lessonRepository.existsByTitle("Lesson 1");
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void existsByModule_ModuleId_success() {
+        CourseModel course = createCourse();
+        ModuleModel module = createModule(course, "Module Test");
+
+        createLesson(module, "Lesson 1");
+
+        boolean exists =
+                lessonRepository.existsByModule_ModuleId(module.getModuleId());
+
+        assertTrue(exists);
+    }
+}
