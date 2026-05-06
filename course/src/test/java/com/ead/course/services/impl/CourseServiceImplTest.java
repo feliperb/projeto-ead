@@ -6,13 +6,9 @@ import com.ead.course.enums.CourseStatus;
 import com.ead.course.exceptions.ConflictException;
 import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
-import com.ead.course.models.LessonModel;
-import com.ead.course.models.ModuleModel;
 import com.ead.course.repositories.CourseRepository;
-import com.ead.course.repositories.LessonRepository;
-import com.ead.course.repositories.ModuleRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,10 +28,6 @@ class CourseServiceImplTest {
 
     @Mock
     private CourseRepository courseRepository;
-    @Mock
-    private ModuleRepository moduleRepository;
-    @Mock
-    private LessonRepository lessonRepository;
 
     @InjectMocks
     private CourseServiceImpl courseService;
@@ -48,13 +40,16 @@ class CourseServiceImplTest {
     @BeforeEach
     void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
+
         courseId = UUID.randomUUID();
+
         courseModel = new CourseModel();
         courseModel.setCourseId(courseId);
         courseModel.setName("Test Course");
         courseModel.setDescription("Test Description");
         courseModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
         courseModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+
         courseRecordDto = new CourseRecordDto(
                 "Test Course",
                 "Test Description",
@@ -72,77 +67,94 @@ class CourseServiceImplTest {
         }
     }
 
-    // Tests for deleteById
+    // =========================
+    // CREATE
+    // =========================
+
     @Test
-    void deleteById_successfulDeletion_callsDelete() {
-        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(moduleRepository.findAllModulesIntoCourse(courseId)).thenReturn(Collections.emptyList());
+    void create_success_savesCourse() {
+        when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(false);
+        when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
 
-        courseService.deleteById(courseId);
+        CourseModel result = courseService.create(courseRecordDto);
 
-        verify(courseRepository).findById(courseId);
-        verify(courseRepository).delete(courseModel);
+        assertNotNull(result);
+        assertEquals("Test Course", result.getName());
+
+        verify(courseRepository).existsByName(courseRecordDto.name());
+        verify(courseRepository).save(any(CourseModel.class));
     }
 
     @Test
-    void deleteById_courseNotFound_throwsException() {
+    void create_nameAlreadyExists_throwsConflictException() {
+        when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(true);
+
+        assertThrows(ConflictException.class,
+                () -> courseService.create(courseRecordDto));
+
+        verify(courseRepository).existsByName(courseRecordDto.name());
+        verify(courseRepository, never()).save(any());
+    }
+
+    // =========================
+    // GET BY ID
+    // =========================
+
+    @Test
+    void getById_courseExists_returnsCourse() {
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
+
+        CourseModel result = courseService.getById(courseId);
+
+        assertNotNull(result);
+        assertEquals(courseModel, result);
+
+        verify(courseRepository).findById(courseId);
+    }
+
+    @Test
+    void getById_courseNotFound_throwsException() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> courseService.deleteById(courseId));
+        assertThrows(NotFoundException.class,
+                () -> courseService.getById(courseId));
+
         verify(courseRepository).findById(courseId);
-        verify(courseRepository, never()).delete(any());
+    }
+
+    // =========================
+    // GET ALL
+    // =========================
+
+    @Test
+    void getAllCourses_returnsAllCourses() {
+        CourseModel course1 = new CourseModel();
+        CourseModel course2 = new CourseModel();
+
+        when(courseRepository.findAll()).thenReturn(List.of(course1, course2));
+
+        List<CourseModel> result = courseService.getAllCourses();
+
+        assertEquals(2, result.size());
+
+        verify(courseRepository).findAll();
     }
 
     @Test
-    void deleteById_withModulesAndLessons_deletesAll() {
-        ModuleModel module1 = new ModuleModel();
-        ModuleModel module2 = new ModuleModel();
-        UUID moduleId1 = UUID.randomUUID();
-        UUID moduleId2 = UUID.randomUUID();
-        module1.setModuleId(moduleId1);
-        module2.setModuleId(moduleId2);
+    void getAllCourses_emptyList_returnsEmptyList() {
+        when(courseRepository.findAll()).thenReturn(Collections.emptyList());
 
-        LessonModel lesson1 = new LessonModel();
-        LessonModel lesson2 = new LessonModel();
+        List<CourseModel> result = courseService.getAllCourses();
 
-        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(moduleRepository.findAllModulesIntoCourse(courseId))
-                .thenReturn(List.of(module1, module2));
-        when(lessonRepository.findAllLessonsIntoModules(anyList()))
-                .thenReturn(List.of(lesson1, lesson2));
+        assertTrue(result.isEmpty());
 
-        courseService.deleteById(courseId);
-
-        verify(courseRepository).findById(courseId);
-        verify(moduleRepository).findAllModulesIntoCourse(courseId);
-        verify(lessonRepository).findAllLessonsIntoModules(anyList());
-        verify(lessonRepository).deleteAll(List.of(lesson1, lesson2));
-        verify(moduleRepository).deleteAll(List.of(module1, module2));
-        verify(courseRepository).delete(courseModel);
+        verify(courseRepository).findAll();
     }
 
-    @Test
-    void deleteById_withModulesNoLessons_deletesModulesAndCourse() {
-        ModuleModel module = new ModuleModel();
-        UUID moduleId = UUID.randomUUID();
-        module.setModuleId(moduleId);
+    // =========================
+    // UPDATE
+    // =========================
 
-        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(moduleRepository.findAllModulesIntoCourse(courseId))
-                .thenReturn(List.of(module));
-        when(lessonRepository.findAllLessonsIntoModules(anyList()))
-                .thenReturn(Collections.emptyList());
-
-        courseService.deleteById(courseId);
-
-        verify(courseRepository).findById(courseId);
-        verify(moduleRepository).findAllModulesIntoCourse(courseId);
-        verify(lessonRepository, never()).deleteAll(anyList());
-        verify(moduleRepository).deleteAll(List.of(module));
-        verify(courseRepository).delete(courseModel);
-    }
-
-    // Tests for updateById
     @Test
     void updateById_successfulUpdate_returnsUpdatedCourse() {
         CourseRecordDto updateDto = new CourseRecordDto(
@@ -155,123 +167,108 @@ class CourseServiceImplTest {
         );
 
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
+        when(courseRepository.existsByName(updateDto.name())).thenReturn(false);
+        when(courseRepository.save(any(CourseModel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         CourseModel result = courseService.updateById(courseId, updateDto);
 
         assertNotNull(result);
-        assertEquals(courseId, result.getCourseId());
+        assertEquals("Updated Course", result.getName());
+        assertEquals("Updated Description", result.getDescription());
+
         verify(courseRepository).findById(courseId);
+        verify(courseRepository).existsByName(updateDto.name());
         verify(courseRepository).save(any(CourseModel.class));
     }
 
     @Test
     void updateById_courseNotFound_throwsException() {
-        CourseRecordDto updateDto = new CourseRecordDto(
-                "Updated Course",
-                "Updated Description",
-                CourseStatus.IN_PROGRESS,
-                CourseLevel.BEGINNER,
-                UUID.randomUUID(),
-                "updated-image-url"
-        );
-
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> courseService.updateById(courseId, updateDto));
+        assertThrows(NotFoundException.class,
+                () -> courseService.updateById(courseId, courseRecordDto));
+
         verify(courseRepository).findById(courseId);
         verify(courseRepository, never()).save(any());
     }
 
     @Test
-        void updateById_updatesLastUpdateDate() {
-            CourseRecordDto updateDto = new CourseRecordDto(
-                    "Updated Course",
-                    "Updated Description",
-                    CourseStatus.IN_PROGRESS,
-                    CourseLevel.BEGINNER,
-                    UUID.randomUUID(),
-                "updated-image-url"
+    void updateById_nameAlreadyExists_throwsConflictException() {
+        CourseRecordDto updateDto = new CourseRecordDto(
+                "New Name",
+                "Desc",
+                CourseStatus.IN_PROGRESS,
+                CourseLevel.BEGINNER,
+                UUID.randomUUID(),
+                "img"
         );
 
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
-        LocalDateTime oldUpdateDate = courseModel.getLastUpdateDate();
+        when(courseRepository.existsByName("New Name")).thenReturn(true);
+
+        assertThrows(ConflictException.class,
+                () -> courseService.updateById(courseId, updateDto));
+
+        verify(courseRepository).findById(courseId);
+        verify(courseRepository).existsByName("New Name");
+        verify(courseRepository, never()).save(any());
+    }
+
+    @Test
+    void updateById_updatesLastUpdateDate() {
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
+        when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(false);
+
+        LocalDateTime oldDate = courseModel.getLastUpdateDate();
 
         when(courseRepository.save(any(CourseModel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        courseService.updateById(courseId, updateDto);
+        CourseModel result = courseService.updateById(courseId, courseRecordDto);
 
-        verify(courseRepository).save(argThat(course ->
-            course.getLastUpdateDate().isAfter(oldUpdateDate) ||
-            course.getLastUpdateDate().equals(oldUpdateDate)
-        ));
-    }
+        assertTrue(result.getLastUpdateDate().isAfter(oldDate));
 
-    // Tests for saveIfNotExists
-    @Test
-    void saveIfNotExists_success_savesCourse() {
-        when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(false);
-        when(courseRepository.save(any(CourseModel.class))).thenReturn(courseModel);
-
-        CourseModel result = courseService.create(courseRecordDto);
-
-        assertNotNull(result);
-        assertEquals("Test Course", result.getName());
-        verify(courseRepository).existsByName(courseRecordDto.name());
         verify(courseRepository).save(any(CourseModel.class));
     }
 
-    @Test
-    void saveIfNotExists_nameAlreadyExists_throwsException() {
-        when(courseRepository.existsByName(courseRecordDto.name())).thenReturn(true);
+    // =========================
+    // DELETE
+    // =========================
 
-        assertThrows(ConflictException.class, () -> courseService.create(courseRecordDto));
-        verify(courseRepository).existsByName(courseRecordDto.name());
-        verify(courseRepository, never()).save(any());
-    }
-
-    // Tests for getByIdOrThrow
     @Test
-    void getByIdOrThrow_courseExists_returnsCourse() {
+    void deleteById_successfulDeletion_callsDelete() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
+        when(courseRepository.existsByCourseId(courseId)).thenReturn(false);
 
-        CourseModel result = courseService.getById(courseId);
+        courseService.deleteById(courseId);
 
-        assertNotNull(result);
-        assertEquals(courseModel, result);
         verify(courseRepository).findById(courseId);
+        verify(courseRepository).existsByCourseId(courseId);
+        verify(courseRepository).delete(courseModel);
     }
 
     @Test
-    void getByIdOrThrow_courseNotFound_throwsException() {
+    void deleteById_courseNotFound_throwsException() {
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> courseService.getById(courseId));
+        assertThrows(NotFoundException.class,
+                () -> courseService.deleteById(courseId));
+
         verify(courseRepository).findById(courseId);
-    }
-
-    // Tests for findAll
-    @Test
-    void findAll_returnsAllCourses() {
-        CourseModel course1 = new CourseModel();
-        CourseModel course2 = new CourseModel();
-
-        when(courseRepository.findAll()).thenReturn(List.of(course1, course2));
-
-        List<CourseModel> result = courseService.getAllCourses();
-
-        assertEquals(2, result.size());
-        verify(courseRepository).findAll();
+        verify(courseRepository, never()).delete(any());
     }
 
     @Test
-    void findAll_emptyList_returnsEmptyList() {
-        when(courseRepository.findAll()).thenReturn(Collections.emptyList());
+    void deleteById_withModules_throwsConflictException() {
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(courseModel));
+        when(courseRepository.existsByCourseId(courseId)).thenReturn(true);
 
-        List<CourseModel> result = courseService.getAllCourses();
+        assertThrows(ConflictException.class,
+                () -> courseService.deleteById(courseId));
 
-        assertTrue(result.isEmpty());
-        verify(courseRepository).findAll();
+        verify(courseRepository).findById(courseId);
+        verify(courseRepository).existsByCourseId(courseId);
+        verify(courseRepository, never()).delete(any());
     }
 }
