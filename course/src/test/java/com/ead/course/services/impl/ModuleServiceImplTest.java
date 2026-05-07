@@ -397,7 +397,7 @@ class ModuleServiceImplTest {
         assertThrows(ConflictException.class,
                 () -> moduleService.deleteById(moduleId));
 
-        verify(moduleRepository, never()).delete(any());
+        verify(moduleRepository, never()).delete(any(ModuleModel.class));
     }
 
     @Test
@@ -408,7 +408,7 @@ class ModuleServiceImplTest {
         assertThrows(NotFoundException.class,
                 () -> moduleService.deleteById(moduleId));
 
-        verify(moduleRepository, never()).delete(any());
+        verify(moduleRepository, never()).delete(any(ModuleModel.class));
     }
 
     @Test

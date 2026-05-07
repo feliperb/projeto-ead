@@ -12,6 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -98,29 +102,70 @@ class ModuleControllerTest {
     void getAllModules_success_returns200() {
         ModuleModel module1 = new ModuleModel();
         ModuleModel module2 = new ModuleModel();
-        List<ModuleModel> modules = List.of(module1, module2);
 
-        when(moduleService.getAllModules(courseId)).thenReturn(modules);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        ResponseEntity<List<ModuleModel>> response = moduleController.getAllModules(courseId);
+        Page<ModuleModel> page = new PageImpl<>(
+                List.of(module1, module2),
+                pageable,
+                2
+        );
+
+        when(moduleService.getAllModulesIntoCourse(
+                any(),
+                eq(pageable)
+        )).thenReturn(page);
+
+        ResponseEntity<Page<ModuleModel>> response =
+                moduleController.getAllModules(
+                        courseId,
+                        null,
+                        pageable
+                );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertEquals(2, response.getBody().size());
-        assertEquals(modules, response.getBody());
-        verify(moduleService).getAllModules(courseId);
+
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().getContent().size());
+        assertEquals(page, response.getBody());
+
+        verify(moduleService).getAllModulesIntoCourse(
+                any(),
+                eq(pageable)
+        );
     }
 
     @Test
-    void getAllModules_noModulesFound_returnsEmptyList() {
-        when(moduleService.getAllModules(courseId)).thenReturn(Collections.emptyList());
+    void getAllModules_noModulesFound_returnsEmptyPage() {
+        Pageable pageable = PageRequest.of(0, 10);
 
-        ResponseEntity<List<ModuleModel>> response = moduleController.getAllModules(courseId);
+        Page<ModuleModel> emptyPage = new PageImpl<>(
+                Collections.emptyList(),
+                pageable,
+                0
+        );
+
+        when(moduleService.getAllModulesIntoCourse(
+                any(),
+                eq(pageable)
+        )).thenReturn(emptyPage);
+
+        ResponseEntity<Page<ModuleModel>> response =
+                moduleController.getAllModules(
+                        courseId,
+                        null,
+                        pageable
+                );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertTrue(response.getBody().isEmpty());
-        verify(moduleService).getAllModules(courseId);
+
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().getContent().isEmpty());
+
+        verify(moduleService).getAllModulesIntoCourse(
+                any(),
+                eq(pageable)
+        );
     }
 
     // Tests for getModuleById

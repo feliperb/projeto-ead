@@ -12,6 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -98,28 +102,70 @@ class LessonControllerTest {
     void getAllLessons_success_returns200() {
         LessonModel lesson1 = new LessonModel();
         LessonModel lesson2 = new LessonModel();
-        List<LessonModel> lessons = List.of(lesson1, lesson2);
 
-        when(lessonService.getAllLessons(moduleId)).thenReturn(lessons);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        ResponseEntity<List<LessonModel>> response = lessonController.getAllLessons(moduleId);
+        Page<LessonModel> page = new PageImpl<>(
+                List.of(lesson1, lesson2),
+                pageable,
+                2
+        );
+
+        when(lessonService.getAllLessonsIntoModule(
+                any(),
+                eq(pageable)
+        )).thenReturn(page);
+
+        ResponseEntity<Page<LessonModel>> response =
+                lessonController.getAllLessons(
+                        moduleId,
+                        null,
+                        pageable
+                );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertEquals(2, response.getBody().size());
-        verify(lessonService).getAllLessons(moduleId);
+
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().getContent().size());
+        assertEquals(page, response.getBody());
+
+        verify(lessonService).getAllLessonsIntoModule(
+                any(),
+                eq(pageable)
+        );
     }
 
     @Test
-    void getAllLessons_emptyList_returns200() {
-        when(lessonService.getAllLessons(moduleId)).thenReturn(Collections.emptyList());
+    void getAllLessons_emptyPage_returns200() {
+        Pageable pageable = PageRequest.of(0, 10);
 
-        ResponseEntity<List<LessonModel>> response = lessonController.getAllLessons(moduleId);
+        Page<LessonModel> emptyPage = new PageImpl<>(
+                Collections.emptyList(),
+                pageable,
+                0
+        );
+
+        when(lessonService.getAllLessonsIntoModule(
+                any(),
+                eq(pageable)
+        )).thenReturn(emptyPage);
+
+        ResponseEntity<Page<LessonModel>> response =
+                lessonController.getAllLessons(
+                        moduleId,
+                        null,
+                        pageable
+                );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertTrue(response.getBody().isEmpty());
-        verify(lessonService).getAllLessons(moduleId);
+
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().getContent().isEmpty());
+
+        verify(lessonService).getAllLessonsIntoModule(
+                any(),
+                eq(pageable)
+        );
     }
 
     // Tests for getLessonById
