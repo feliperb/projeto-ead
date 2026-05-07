@@ -1,6 +1,7 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.ModuleRecordDto;
+import com.ead.course.exceptions.BusinessException;
 import com.ead.course.exceptions.ConflictException;
 import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.CourseModel;
@@ -14,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -30,6 +33,7 @@ public class ModuleServiceImpl implements ModuleService {
     @Transactional
     @Override
     public ModuleModel create(ModuleRecordDto dto, CourseModel course) {
+        validateCourse(course);
         validateModuleNameAvailability(dto.title(), course.getCourseId());
         ModuleModel module = buildEntity(dto, course);
         return moduleRepository.save(module);
@@ -37,7 +41,8 @@ public class ModuleServiceImpl implements ModuleService {
 
     @Override
     public List<ModuleModel> getAllModules(UUID courseId) {
-        return moduleRepository.findAllModulesIntoCourse(courseId); //paginacao por fazer...
+        validateId(courseId, "courseId");
+        return Optional.ofNullable(moduleRepository.findAllModulesIntoCourse(courseId)).orElse(List.of());
     }
 
     @Override
@@ -49,6 +54,7 @@ public class ModuleServiceImpl implements ModuleService {
     @Override
     public ModuleModel updateById(UUID moduleId, ModuleRecordDto dto) {
         ModuleModel module = findModuleOrThrow(moduleId);
+        validateModuleOwnership(module);
         validateNameChange(dto.title(), module);
         applyUpdates(module, dto);
         return moduleRepository.save(module);
@@ -57,6 +63,7 @@ public class ModuleServiceImpl implements ModuleService {
     @Transactional
     @Override
     public void deleteById(UUID moduleId) {
+        validateId(moduleId, "moduleId");
         ModuleModel module = findModuleOrThrow(moduleId);
         validateNoDependencies(moduleId);
         moduleRepository.delete(module);
@@ -66,9 +73,20 @@ public class ModuleServiceImpl implements ModuleService {
     // PRIVATE METHODS
     // =========================
 
+    private void validateId(UUID id, String fieldName) {
+        if (id == null) {
+            throw new BusinessException(fieldName + " cannot be null");
+        }
+    }
+
+    private void validateCourse(CourseModel course) {
+        if (course == null) {throw new BusinessException("Course cannot be null");}
+        validateId(course.getCourseId(), "courseId");
+    }
+
     private ModuleModel findModuleOrThrow(UUID moduleId) {
-        return moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
+        validateId(moduleId, "moduleId");
+        return moduleRepository.findById(moduleId).orElseThrow(() -> new NotFoundException("Module not found with id: " + moduleId));
     }
 
     private void validateModuleNameAvailability(String title, UUID courseId) {
@@ -78,8 +96,17 @@ public class ModuleServiceImpl implements ModuleService {
     }
 
     private void validateNameChange(String newTitle, ModuleModel module) {
-        if (moduleRepository.existsByTitleAndCourse_CourseIdAndModuleIdNot(newTitle, module.getCourse().getCourseId(), module.getModuleId())) {
+        validateModuleOwnership(module);
+        boolean nameChanged = !Objects.equals(module.getTitle(), newTitle);
+        if (nameChanged && moduleRepository.existsByTitleAndCourse_CourseIdAndModuleIdNot(newTitle, module.getCourse().getCourseId(), module.getModuleId())) {
             throw new ConflictException("Module title is already taken: " + newTitle);
+        }
+    }
+
+    private void validateModuleOwnership(ModuleModel module) {
+        CourseModel course = module.getCourse();
+        if (course == null || course.getCourseId() == null) {
+            throw new BusinessException("Module must be associated with a valid course");
         }
     }
 

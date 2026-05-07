@@ -13,6 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -85,23 +89,40 @@ class CourseControllerTest {
     // Tests for getAllCourses
     @Test
     void getAllCourses_success_returns200() {
-        var courses = List.of(new CourseModel(), new CourseModel());
-        when(courseService.getAllCourses()).thenReturn(courses);
-        ResponseEntity<List<CourseModel>> response = courseController.getAllCourses();
+        var pageable = PageRequest.of(0, 10);
+
+        var course1 = new CourseModel();
+        var course2 = new CourseModel();
+
+        var page = new PageImpl<>(List.of(course1, course2), pageable, 2);
+
+        when(courseService.getAllCourses(any(), eq(pageable))).thenReturn(page);
+
+        ResponseEntity<Page<CourseModel>> response =
+                courseController.getAllCourses(null, pageable);
+
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertEquals(2, response.getBody().size());
-        verify(courseService).getAllCourses();
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().getContent().size());
+
+        verify(courseService).getAllCourses(any(), eq(pageable));
     }
 
     @Test
     void getAllCourses_emptyList_returns200() {
-        when(courseService.getAllCourses()).thenReturn(List.of());
-        ResponseEntity<List<CourseModel>> response = courseController.getAllCourses();
+        var pageable = PageRequest.of(0, 10);
+
+        var page = new PageImpl<CourseModel>(List.of(), pageable, 0);
+
+        when(courseService.getAllCourses(any(), any(Pageable.class))).thenReturn(page);
+
+        ResponseEntity<Page<CourseModel>> response = courseController.getAllCourses(null, pageable);
+
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assert response.getBody() != null;
-        assertTrue(response.getBody().isEmpty());
-        verify(courseService).getAllCourses();
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().getContent().isEmpty());
+
+        verify(courseService).getAllCourses(any(), any(Pageable.class));
     }
 
     // Tests for getCourseById

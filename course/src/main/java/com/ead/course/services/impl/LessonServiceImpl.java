@@ -1,6 +1,7 @@
 package com.ead.course.services.impl;
 
 import com.ead.course.dtos.LessonRecordDto;
+import com.ead.course.exceptions.BusinessException;
 import com.ead.course.exceptions.ConflictException;
 import com.ead.course.exceptions.NotFoundException;
 import com.ead.course.models.LessonModel;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,6 +30,7 @@ public class LessonServiceImpl implements LessonService {
     @Transactional
     @Override
     public LessonModel create(LessonRecordDto dto, ModuleModel module) {
+        validateModule(module);
         validateLessonNameAvailability(dto.title(), module.getModuleId());
         LessonModel lesson = buildEntity(dto, module);
         return lessonRepository.save(lesson);
@@ -34,7 +38,10 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     public List<LessonModel> getAllLessons(UUID moduleId) {
-        return lessonRepository.findByModule_ModuleId(moduleId);
+        if (moduleId == null) {
+            throw new BusinessException("moduleId cannot be null");
+        }
+        return Optional.ofNullable(lessonRepository.findByModule_ModuleId(moduleId)).orElse(List.of());
     }
 
     @Override
@@ -62,6 +69,12 @@ public class LessonServiceImpl implements LessonService {
     // PRIVATE METHODS
     // =========================
 
+    private void validateModule(ModuleModel module) {
+        if (module == null) {throw new BusinessException("Module cannot be null");}
+        if (module.getModuleId() == null) {throw new BusinessException("Module ID cannot be null");}
+        if (module.getCourse() == null || module.getCourse().getCourseId() == null) {throw new BusinessException("Module must be associated with a valid course");}
+    }
+
     private LessonModel findLessonOrThrow(UUID lessonId) {
         return lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new NotFoundException("Lesson not found with id: " + lessonId));
@@ -74,10 +87,15 @@ public class LessonServiceImpl implements LessonService {
     }
 
     private void validateNameChange(String newTitle, LessonModel lesson) {
-        boolean nameChanged = !lesson.getTitle().equals(newTitle);
-        if (nameChanged && lessonRepository.existsByTitleAndModule_ModuleId(newTitle, lesson.getModule().getModuleId())) {
+        boolean nameChanged = !Objects.equals(lesson.getTitle(), newTitle);
+        if (nameChanged && lessonRepository.existsByTitleAndModule_ModuleId(newTitle, getModuleId(lesson))) {
             throw new ConflictException("Lesson title is already taken: " + newTitle);
         }
+    }
+
+    private UUID getModuleId(LessonModel lesson) {
+        if (lesson.getModule() == null) {   throw new BusinessException("Lesson must be associated with a module"); }
+        return lesson.getModule().getModuleId();
     }
 
     private LessonModel buildEntity(LessonRecordDto dto, ModuleModel module) {
