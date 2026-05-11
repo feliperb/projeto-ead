@@ -55,6 +55,11 @@
 			<artifactId>specification-arg-resolver</artifactId>
 			<version>${specification.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-commons</artifactId>
+			<version>3.3.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
