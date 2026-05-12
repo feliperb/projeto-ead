@@ -37,6 +37,8 @@ public class GlobalExceptionHandler {
                         (existing, replacement) -> existing
                 ));
 
+        log.warn("Validation failed for request: {} - Errors: {}", request.getRequestURI(), errors);
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Validation failed",
@@ -54,6 +56,9 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         String message = "Invalid parameter: " + ex.getName();
+        log.warn("Parameter type mismatch for request: {} - Parameter: {} - Required type: {}",
+                request.getRequestURI(), ex.getName(), ex.getRequiredType());
+
         return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
@@ -65,6 +70,7 @@ public class GlobalExceptionHandler {
             NotFoundException ex,
             HttpServletRequest request
     ) {
+        log.warn("Resource not found for request: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
@@ -73,6 +79,7 @@ public class GlobalExceptionHandler {
             ConflictException ex,
             HttpServletRequest request
     ) {
+        log.warn("Business conflict for request: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
@@ -81,6 +88,7 @@ public class GlobalExceptionHandler {
             BusinessException ex,
             HttpServletRequest request
     ) {
+        log.warn("Business rule violation for request: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
@@ -90,6 +98,7 @@ public class GlobalExceptionHandler {
             UnauthorizedException ex,
             HttpServletRequest request
     ) {
+        log.warn("Unauthorized access attempt for request: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
@@ -101,7 +110,7 @@ public class GlobalExceptionHandler {
             org.springframework.dao.DataIntegrityViolationException ex,
             HttpServletRequest request
     ) {
-        log.error("Data integrity violation", ex);
+        log.error("Data integrity violation for request: {} - Root cause: {}", request.getRequestURI(), ex.getRootCause() != null ? ex.getRootCause().getMessage() : "Unknown", ex);
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -115,7 +124,8 @@ public class GlobalExceptionHandler {
             org.hibernate.exception.ConstraintViolationException ex,
             HttpServletRequest request
     ) {
-        log.error("Database constraint violation", ex);
+        log.error("Database constraint violation for request: {} - Constraint: {} - Message: {}",
+                request.getRequestURI(), ex.getConstraintName(), ex.getMessage(), ex);
 
         return buildResponse(
                 HttpStatus.CONFLICT,
@@ -132,7 +142,7 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
-        log.error("Unexpected error", ex);
+        log.error("Unexpected error for request: {} - Exception: {}", request.getRequestURI(), ex.getClass().getSimpleName(), ex);
 
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,

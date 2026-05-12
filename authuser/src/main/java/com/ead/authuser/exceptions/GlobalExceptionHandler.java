@@ -1,6 +1,8 @@
 package com.ead.authuser.exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,12 +16,15 @@ import java.time.ZoneOffset;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    Logger logger = LogManager.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @SuppressWarnings("unused")
     public ResponseEntity<ErrorRecordResponse> handleMethodArgumentTypeMismatch(
             MethodArgumentTypeMismatchException ex,
             HttpServletRequest request
     ) {
+        logger.warn("MethodArgumentTypeMismatchException - Path: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Invalid UUID format",
@@ -32,6 +37,7 @@ public class GlobalExceptionHandler {
             NotFoundException ex,
             HttpServletRequest request
     ) {
+        logger.warn("NotFoundException - Path: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
@@ -47,6 +53,7 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .orElse("Validation failed");
 
+        logger.warn("MethodArgumentNotValidException - Path: {} - Message: {}", request.getRequestURI(), message);
         return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
@@ -55,6 +62,7 @@ public class GlobalExceptionHandler {
             ConflictException ex,
             HttpServletRequest request
     ) {
+        logger.warn("ConflictException - Path: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
@@ -63,6 +71,7 @@ public class GlobalExceptionHandler {
             UnauthorizedException ex,
             HttpServletRequest request
     ) {
+        logger.warn("UnauthorizedException - Path: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
@@ -71,6 +80,7 @@ public class GlobalExceptionHandler {
             BusinessException ex,
             HttpServletRequest request
     ) {
+        logger.warn("BusinessException - Path: {} - Message: {}", request.getRequestURI(), ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
@@ -81,6 +91,11 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
+        logger.error("Unhandled Exception - Path: {} - Type: {} - Message: {}",
+                request.getRequestURI(),
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                ex);
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal server error",
